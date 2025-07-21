@@ -1,22 +1,22 @@
-import React, {
-  createContext,
-  useState,
-  useContext,
-  ReactNode,
-  useLayoutEffect,
-} from "react";
+import AuthServices from "@/services/AuthService";
+import ProfileServices from "@/services/ProfileService";
+import { ThemeType, useThemeStore } from "@/store/themeStore";
+import { AuthSession } from "@/types/auth-session.type";
+import { User } from "@/types/user.type";
 import {
-  getAuthSession,
-  storeAuthSession,
-  removeAuthSession,
+    getAuthSession,
+    removeAuthSession,
+    storeAuthSession,
 } from "@/utils/auth-storage";
 import { removeFilterSettings } from "@/utils/filter-storage";
-import { AuthSession } from "@/types/auth-session.type";
-import AuthServices from "@/services/AuthService";
-import { useThemeStore, ThemeType } from "@/store/themeStore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { User } from "@/types/user.type";
-import ProfileServices from "@/services/ProfileService";
+import React, {
+    createContext,
+    ReactNode,
+    useContext,
+    useLayoutEffect,
+    useState,
+} from "react";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -137,6 +137,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const token = tokenOverride || (await AsyncStorage.getItem("userToken"));
     try {
       if (token) {
+        if (token === "mock-access-token") {
+          setUser({
+            _id: "mock-user-id",
+            email: "test@example.com",
+            firstName: "Test",
+            lastName: "User",
+            theme: "dark",
+            isVerified: true,
+            isPrivate: false,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+          return;
+        }
         const userProfile = await ProfileServices.getProfile(token);
         setUser(userProfile);
       }

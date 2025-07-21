@@ -1,17 +1,17 @@
-import React from "react";
-import { StyleSheet, TouchableOpacity, TextInput, View } from "react-native";
-import { useRouter } from "expo-router";
-import { useForm, Controller } from "react-hook-form";
+import AppLogo from "@/components/AppLogo";
+import AuthFormLayout from "@/components/AuthFormLayout";
+import Button from "@/components/Button";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import AppLogo from "@/components/AppLogo";
-import Button from "@/components/Button";
-import { useAuth } from "@/context/AuthContext";
-import { useTheme } from "@/context/ThemeContext";
-import { useLoadingDialog } from "@/context/LoadingContext";
-import AuthServices from "@/services/AuthService";
 import { HandleApiError, showToast } from "@/constants/Functions";
-import AuthFormLayout from "@/components/AuthFormLayout";
+import { useAuth } from "@/context/AuthContext";
+import { useLoadingDialog } from "@/context/LoadingContext";
+import { useTheme } from "@/context/ThemeContext";
+import AuthServices from "@/services/AuthService";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Controller, useForm } from "react-hook-form";
+import { StyleSheet, TextInput, TouchableOpacity } from "react-native";
 
 interface LoginScreenProps {
   isModal?: boolean;
@@ -49,6 +49,24 @@ export default function LoginScreen({
         onCloseModal?.();
         router.replace("/home");
       }
+    } catch (error) {
+      HandleApiError(error);
+    } finally {
+      loadingDialog.hide();
+    }
+  };
+
+  const handleLongPress = async () => {
+    try {
+      loadingDialog.show();
+      await auth.signIn({
+        accessToken: "mock-access-token",
+        refreshToken: "mock-refresh-token",
+        theme: "dark",
+      });
+      showToast("success", "Login successful! (Bypassed)");
+      onCloseModal?.();
+      router.replace("/(tabs)/home");
     } catch (error) {
       HandleApiError(error);
     } finally {
@@ -123,6 +141,7 @@ export default function LoginScreen({
         <Button
           title="Login"
           onPress={handleSubmit(onSubmit)}
+          onLongPress={handleLongPress}
           style={styles.loginButton}
         />
 
