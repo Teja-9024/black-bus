@@ -1,8 +1,8 @@
-import React from 'react';
-import { Image, StyleSheet, ImageStyle, StyleProp, ViewStyle } from 'react-native';
 import { useTheme } from '@/context/ThemeContext';
-import { ThemedView } from './ThemedView';
+import React from 'react';
+import { Image, ImageStyle, StyleProp, StyleSheet, ViewStyle } from 'react-native';
 import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
 interface AppLogoProps {
   size?: number;
@@ -36,7 +36,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
       ]}
     >
       <Image
-        source={require('@/assets/images/logo3.png')}
+        source={require('@/assets/images/blackbus.png')}
         style={[{ width: size, height: size }, style]}
         resizeMode={resizeMode}
       />

@@ -1,11 +1,11 @@
-import React from "react";
-import { StyleSheet, Platform } from "react-native";
-import { useRouter } from "expo-router";
-import { ThemedView } from "@/components/ThemedView";
-import AuthScreenWrapper from "@/components/AuthScreenWrapper";
-import Divider from "@/components/Divider";
-import Button from "@/components/Button";
 import AppLogo from "@/components/AppLogo";
+import AuthScreenWrapper from "@/components/AuthScreenWrapper";
+import Button from "@/components/Button";
+import Divider from "@/components/Divider";
+import { ThemedView } from "@/components/ThemedView";
+import { useRouter } from "expo-router";
+import React from "react";
+import { Platform, StyleSheet } from "react-native";
 
 export default function AuthChoiceScreen() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function AuthChoiceScreen() {
         <ThemedView style={styles.logoHeader}>
           <AppLogo
             showText
-            text="Welcome to FriendZone"
+            text="Welcome to BlackBus"
             textStyle={{ fontSize: 30, fontWeight: 'bold' }}
           />
         </ThemedView>
