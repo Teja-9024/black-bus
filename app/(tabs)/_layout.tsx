@@ -1,6 +1,9 @@
 import { HapticTab } from "@/components/HapticTab";
 import { useTheme } from "@/context/ThemeContext";
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import Octicons from '@expo/vector-icons/Octicons';
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
@@ -10,7 +13,7 @@ export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const basePaddingTop = 5;
+  const basePaddingTop = 5; 
   const basePaddingBottomAndroid = 5;
   const basePaddingBottomIos = 20;
 
@@ -57,6 +60,48 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? "home" : "home-outline"}
+              size={26}
+              color={focused ? colors.tabBarActive : colors.tabBarInactive}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="intake"
+        options={{
+          title: "Intake",
+          tabBarIcon: ({ focused }) => (
+            <FontAwesome5
+              name={focused ? "gas-pump" : "gas-pump"}
+              size={26}
+              color={focused ? colors.tabBarActive : colors.tabBarInactive}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="delivery"
+        options={{
+          title: "Delivery",
+          tabBarIcon: ({ focused }) => (
+            <MaterialCommunityIcons
+              name={focused ? "truck-delivery" : "truck-delivery-outline"}
+              size={26}
+              color={focused ? colors.tabBarActive : colors.tabBarInactive}
+            />
+          ),
+        }}  
+      />
+
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: "Reports",
+          tabBarIcon: ({ focused }) => (
+            <Octicons
+              name={focused ? "report" : "report"}
               size={26}
               color={focused ? colors.tabBarActive : colors.tabBarInactive}
             />
