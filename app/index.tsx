@@ -39,14 +39,14 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
               type="title"
               style={styles.title}
             >
-              BlackBus
+              Sonu Petroleum Service
             </ThemedText>
-            <ThemedText
+            {/* <ThemedText
               type="default"
               style={styles.tagline}
             >
               Skip the red. Ride the black.
-            </ThemedText>
+            </ThemedText> */}
           </ThemedView>
 
           <LottieView
@@ -59,7 +59,7 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
           <ThemedView style={styles.joinButton}>
             <Button
               title="Book"
-              onPress={() => router.push("/(auth)/AuthChoice")}
+              onPress={() => router.push("/(auth)/login")}
             />
           </ThemedView>
         </ThemedSafeArea>
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: {
-    fontSize: 38,
+    fontSize: 28,
     fontWeight: "800",
   },
   tagline: {

@@ -1,11 +1,10 @@
 import AppLogo from "@/components/AppLogo";
 import AuthScreenWrapper from "@/components/AuthScreenWrapper";
 import Button from "@/components/Button";
-import Divider from "@/components/Divider";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Platform, StyleSheet } from "react-native";
+import { StyleSheet } from "react-native";
 
 export default function AuthChoiceScreen() {
   const router = useRouter();
@@ -19,8 +18,9 @@ export default function AuthChoiceScreen() {
         <ThemedView style={styles.logoHeader}>
           <AppLogo
             showText
-            text="Welcome to BlackBus"
-            textStyle={{ fontSize: 30, fontWeight: 'bold' }}
+            text="Welcome to Sonu Petroleum Service
+"
+            textStyle={{ fontSize: 18, fontWeight: 'bold',  }}
           />
         </ThemedView>
         <ThemedView style={styles.buttonGroup}>
@@ -28,21 +28,21 @@ export default function AuthChoiceScreen() {
             title="Login with Email"
             onPress={() => router.push("/(auth)/login")}
           />
-          <Divider text="or" />
+          {/* <Divider text="or" />
           <Button
             title="Sign Up with Email"
             onPress={() => router.push("/(auth)/signup")}
-          />
+          /> */}
         </ThemedView>
 
-        <Divider text="or continue with" />
+        {/* <Divider text="or continue with" /> */}
 
-        <ThemedView style={styles.buttonGroup}>
+        {/* <ThemedView style={styles.buttonGroup}>
           <Button title="Continue with Google" onPress={() => router.push("/(auth)/verify-otp")} />
           {Platform.OS === "ios" && (
             <Button title="Continue with Apple" onPress={handleAppleSignIn} />
           )}
-        </ThemedView>
+        </ThemedView> */}
       </ThemedView>
     </AuthScreenWrapper>
   );

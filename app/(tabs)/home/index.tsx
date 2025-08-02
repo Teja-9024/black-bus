@@ -1,22 +1,22 @@
-import React, { useEffect, useState, useCallback } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
-import { useTheme } from "@/context/ThemeContext";
+import CommonHeader from "@/components/CommonHeader";
+import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
+import { useTheme } from "@/context/ThemeContext";
+import { SimpleLineIcons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
-import { Ionicons, SimpleLineIcons } from "@expo/vector-icons";
-import ThemedSafeArea from "@/components/ThemedSafeArea";
-import CommonHeader from "@/components/CommonHeader";
-import StoryRingList from "@/components/StoryRingList";
+import React, { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
+
 import { ThemedText } from "@/components/ThemedText";
-import { LinearGradient } from "expo-linear-gradient";
+import { ThemedView } from "@/components/ThemedView";
 import ChatService, { ChatPreviewResponse } from "@/services/ChatService";
 import NotificationService from "@/services/NotificationService";
-import { ThemedView } from "@/components/ThemedView";
+import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
   const { colors } = useTheme();
@@ -103,7 +103,7 @@ export default function HomeScreen() {
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
       <ThemedSafeArea style={styles.container}>
         <CommonHeader
-          leftContent={<ThemedText style={styles.title}>FriendZone</ThemedText>}
+          leftContent={<ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>}
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="heart" size={24} color={colors.text} />
@@ -112,25 +112,24 @@ export default function HomeScreen() {
               )}
             </TouchableOpacity>
           }
-          rightContent2={
-            <TouchableOpacity onPress={() => router.push("/(chat)")} style={styles.chatIconContainer}>
-              <Ionicons
-                name="chatbubble-outline"
-                size={25}
-                color={colors.text}
-              />
-              {totalUnreadChats > 0 && (
-                <ThemedView style={[styles.badge, { backgroundColor: 'red' }]}>
-                  <ThemedText style={[styles.badgeText, { color: '#fff' }]}>
-                    {totalUnreadChats > 99 ? '99+' : totalUnreadChats}
-                  </ThemedText>
-                </ThemedView>
-              )}
-            </TouchableOpacity>
-          }
+          // rightContent2={
+          //   <TouchableOpacity onPress={() => router.push("/(chat)")} style={styles.chatIconContainer}>
+          //     <Ionicons
+          //       name="chatbubble-outline"
+          //       size={25}
+          //       color={colors.text}
+          //     />
+          //     {totalUnreadChats > 0 && (
+          //       <ThemedView style={[styles.badge, { backgroundColor: 'red' }]}>
+          //         <ThemedText style={[styles.badgeText, { color: '#fff' }]}>
+          //           {totalUnreadChats > 99 ? '99+' : totalUnreadChats}
+          //         </ThemedText>
+          //       </ThemedView>
+          //     )}
+          //   </TouchableOpacity>
+          // }
           showBottomBorder={true}
         />
-        <StoryRingList />
       </ThemedSafeArea>
     </LinearGradient>
   );

@@ -1,52 +1,45 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  View,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
-import { useTheme } from "@/context/ThemeContext";
-import { ThemedView } from "@/components/ThemedView";
-import { ThemedText } from "@/components/ThemedText";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
+import BackButton from "@/components/BackButton";
 import CommonHeader from "@/components/CommonHeader";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
-import BackButton from "@/components/BackButton";
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
+import { useTheme } from "@/context/ThemeContext";
 import NotificationService, {
-  NotificationResponse, // Assuming NotificationResponse has metadata?: Record<string, any>
+    NotificationResponse, // Assuming NotificationResponse has metadata?: Record<string, any>
 } from "@/services/NotificationService";
 import KnockService, { KnockRequest } from "@/services/knockService";
-import GameService from "@/services/GameService";
-import { useSocket } from "@/context/SocketContext";
-import { useAuth } from "@/context/AuthContext";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  formatNotificationDateGroup,
-  formatNotificationTimestamp,
-  getUserAvatar,
-  showToast,
-} from "@/constants/Functions";
+    ActivityIndicator,
+    Alert,
+    FlatList,
+    RefreshControl,
+    StyleSheet,
+    TouchableOpacity
+} from "react-native";
+
 import UserAvatar from "@/components/UserAvatar";
+import {
+    formatNotificationDateGroup,
+    formatNotificationTimestamp,
+    getUserAvatar,
+    showToast,
+} from "@/constants/Functions";
+import { useAuth } from "@/context/AuthContext";
+import { useSocket } from "@/context/SocketContext";
 
 // Define the specific structure for game invite metadata
-type GameInviteMetadata = {
-  gameId: string;
-  gameName: string;
-  initiatorUsername: string;
-  initiatorAvatar: string | null;
-  status: 'pending' | 'accepted' | 'declined' | 'in-progress';
-};
+
 
 // Define an enriched notification type for easier access to specific metadata
 type EnrichedNotificationItem = NotificationResponse & {
   // Directly add specific metadata properties if you know they exist on certain types
   // This avoids repeated 'as' casts if NotificationResponse's metadata is just 'any' or 'Record<string, any>'
   knockStatus?: "pending" | "lockedIn" | "onesidedlock" | "declined" | null;
-  gameInviteMeta?: GameInviteMetadata; // For 'game_invite' notifications
+
 };
 
 
@@ -109,14 +102,12 @@ export default function NotificationsScreen() {
             ? res.notifications.map(n => ({ // Map to EnrichedNotificationItem
                 ...n,
                 knockStatus: n.knockStatus || null,
-                gameInviteMeta: n.type === 'game_invite' ? (n.metadata as GameInviteMetadata) : undefined,
               }))
             : [
                 ...prev,
                 ...res.notifications.map(n => ({ // Map to EnrichedNotificationItem
                   ...n,
                   knockStatus: n.knockStatus || null,
-                  gameInviteMeta: n.type === 'game_invite' ? (n.metadata as GameInviteMetadata) : undefined,
                 })).filter(
                   (n) => !prev.some((p) => p.id === n.id)
                 ),
@@ -173,7 +164,6 @@ export default function NotificationsScreen() {
         const enrichedN: EnrichedNotificationItem = {
             ...n,
             knockStatus: n.knockStatus || null,
-            gameInviteMeta: n.type === 'game_invite' ? (n.metadata as GameInviteMetadata) : undefined,
         };
       setNotifications((prev) =>
         prev.some((p) => p.id === n.id) ? prev : [enrichedN, ...prev]
@@ -192,9 +182,7 @@ export default function NotificationsScreen() {
           )
           .catch(console.error);
       }
-      if (enrichedN.type === 'game_invite') {
-        showToast('info', `New Game Invite: ${enrichedN.content}`);
-      }
+
     };
 
     const handleNewKnockRequest = (knock: KnockRequest) => {
@@ -319,28 +307,7 @@ export default function NotificationsScreen() {
     }
   };
 
-  // NEW: Handle Game Invite actions
-  const handleGameInviteAction = async (notificationId: string, gameSessionId: string, action: 'accept' | 'decline') => {
-    if (!accessToken) return Alert.alert("Error", "Authentication required.");
 
-    setActionLoadingId(notificationId);
-
-    try {
-      if (action === 'accept') {
-        await GameService.acceptGameInvite(accessToken, gameSessionId);
-        showToast('success', 'Game invite accepted!');
-      } else {
-        await GameService.declineGameInvite(accessToken, gameSessionId);
-        showToast('info', 'Game invite declined.');
-      }
-      // The backend will send a new notification (game_activity) and update the original game_invite's status
-      // which will trigger a re-render. So, just setting loading is enough here.
-    } catch (error: any) {
-      showToast('error', error.response?.data?.message || `Failed to ${action} invite.`);
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
 
 
   const renderKnockBackButton = (item: EnrichedNotificationItem) => {
@@ -411,77 +378,7 @@ export default function NotificationsScreen() {
 
     const isLoadingAction = actionLoadingId === item.id;
 
-    // NEW: Render Game Invite Notification UI
-    if (item.type === 'game_invite' && item.relatedEntityId && item.gameInviteMeta) {
-      const gameInviteMeta = item.gameInviteMeta;
-      const inviteStatus = gameInviteMeta.status || 'pending';
-      const isPending = inviteStatus === 'pending';
-      const isProcessed = ['accepted', 'declined', 'in-progress'].includes(inviteStatus);
 
-      return (
-        <TouchableOpacity
-          style={[
-            styles.notificationItem,
-            isNew && { backgroundColor: colors.buttonBackgroundSecondary + "1A" },
-          ]}
-          onPress={onPressNotificationItem}
-          disabled={isLoadingAction || isProcessed}
-        >
-          <UserAvatar
-            imageUri={gameInviteMeta.initiatorAvatar || getUserAvatar(sender)}
-            size={45}
-            style={styles.notificationAvatar}
-          />
-          <ThemedView style={styles.notificationContent}>
-            <ThemedView style={styles.notificationMessageWrapper}>
-              <ThemedText style={styles.notificationText}>
-                <ThemedText style={styles.notificationUsername}>
-                  {gameInviteMeta.initiatorUsername || sender.username}
-                </ThemedText>{' '}
-                invited you to play{' '}
-                <ThemedText style={styles.notificationGameName}>
-                  {gameInviteMeta.gameName || 'a game'}
-                </ThemedText>
-                !
-              </ThemedText>
-              <ThemedText
-                style={[styles.notificationTimestamp, { color: colors.textDim }]}
-              >
-                {formatNotificationTimestamp(item.timestamp)}
-              </ThemedText>
-            </ThemedView>
-            <ThemedView style={styles.notificationActions}>
-              {isLoadingAction ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : isProcessed ? (
-                <ThemedText style={[styles.gameInviteStatusText, { color: (inviteStatus === 'accepted' || inviteStatus === 'in-progress') ? colors.success : colors.error }]}>
-                  {inviteStatus === 'accepted' ? 'Accepted' : inviteStatus === 'in-progress' ? 'Joined' : 'Declined'}
-                </ThemedText>
-              ) : (
-                <>
-                  <TouchableOpacity
-                    style={[styles.gameActionButton, { backgroundColor: colors.success }]}
-                    onPress={() => handleGameInviteAction(item.id, item.relatedEntityId!, 'accept')}
-                  >
-                    <ThemedText style={[styles.gameActionButtonText, { color: colors.buttonText }]}>
-                      Accept
-                    </ThemedText>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.gameActionButton, { backgroundColor: colors.error, marginLeft: 8 }]}
-                    onPress={() => handleGameInviteAction(item.id, item.relatedEntityId!, 'decline')}
-                  >
-                    <ThemedText style={[styles.gameActionButtonText, { color: colors.buttonText }]}>
-                      Decline
-                    </ThemedText>
-                  </TouchableOpacity>
-                </>
-              )}
-            </ThemedView>
-          </ThemedView>
-        </TouchableOpacity>
-      );
-    }
 
     // Render other notification types (including knock notifications)
     const isKnockNotif =

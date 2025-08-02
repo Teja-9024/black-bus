@@ -1,9 +1,9 @@
+import { HapticTab } from "@/components/HapticTab";
+import { useTheme } from "@/context/ThemeContext";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Platform, StyleSheet } from "react-native";
-import { useTheme } from "@/context/ThemeContext";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import { HapticTab } from "@/components/HapticTab";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -63,47 +63,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: "Explore",
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? "search" : "search-outline"}
-              size={26}
-              color={focused ? colors.tabBarActive : colors.tabBarInactive}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="posts"
-        options={{
-          title: "Posts",
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={focused ? "image" : "image-outline"}
-              size={26}
-              color={focused ? colors.tabBarActive : colors.tabBarInactive}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="games"
-        options={{
-          title: "Games",
-          tabBarIcon: ({ focused }) => (
-            <Ionicons
-              name={
-                focused ? "game-controller" : "game-controller-outline"
-              }
-              size={26}
-              color={focused ? colors.tabBarActive : colors.tabBarInactive}
-            />
-          ),
-        }}
-      />
+
       <Tabs.Screen
         name="profile"
         options={{

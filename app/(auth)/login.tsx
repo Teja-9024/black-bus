@@ -1,7 +1,6 @@
 import AppLogo from "@/components/AppLogo";
 import AuthFormLayout from "@/components/AuthFormLayout";
 import Button from "@/components/Button";
-import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { HandleApiError, showToast } from "@/constants/Functions";
 import { useAuth } from "@/context/AuthContext";
@@ -125,14 +124,6 @@ export default function LoginScreen({
                 style={styles.forgotPassword}
                 onPress={() => router.push("/(auth)/forget-password")}
               >
-                <ThemedText
-                  style={{
-                    fontSize: 14,
-                    fontWeight: 600,
-                  }}
-                >
-                  Forgot Password?
-                </ThemedText>
               </TouchableOpacity>
             </>
           )}
@@ -154,9 +145,6 @@ export default function LoginScreen({
             }
           }}
         >
-          <ThemedText style={styles.linkText}>
-            Don’t have an account? Sign up
-          </ThemedText>
         </TouchableOpacity>
       </ThemedView>
     </ThemedView>

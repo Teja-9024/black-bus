@@ -1,17 +1,17 @@
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import { useFonts } from "expo-font";
-import "react-native-reanimated";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { ThemeProvider, useTheme } from "@/context/ThemeContext";
-import { LoadingDialogProvider } from "@/context/LoadingContext";
-import { AuthProvider, useAuth } from "@/context/AuthContext";
-import { SocketProvider } from "@/context/SocketContext";
-import { StyleSheet, ActivityIndicator } from "react-native";
-import React from "react";
-import Toast from "react-native-toast-message";
 import CustomToast from "@/components/CustomToast";
 import { ThemedView } from "@/components/ThemedView";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
+import { LoadingDialogProvider } from "@/context/LoadingContext";
+import { SocketProvider } from "@/context/SocketContext";
+import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import React from "react";
+import { ActivityIndicator, StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 
 function RootLayoutContent() {
   const { colors } = useTheme();
@@ -29,7 +29,6 @@ function RootLayoutContent() {
     <>
       <Stack initialRouteName="index" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="(stories)" options={{ animation: 'fade' }} />
         <Stack.Screen name="(chat)" options={{ animation: 'slide_from_right' }} />
       </Stack>
       <StatusBar

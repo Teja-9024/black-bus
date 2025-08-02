@@ -73,11 +73,7 @@ export const mockNotifications: Notification[] = [
     user: { id: 'u108', username: 'MiaK', avatar: 'https://i.pravatar.cc/100?img=35' },
     action: 'sent you a friend request.',
   },
-  {
-    id: 'n6', type: 'activity', timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000 - 2 * 60 * 60 * 1000).toISOString(), isRead: true,
-    user: { id: 'u109', username: 'ElijahC', avatar: 'https://i.pravatar.cc/100?img=65' },
-    action: 'reacted to your story.',
-  },
+
   {
     id: 'n7', type: 'accepted_request', timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000 - 1 * 60 * 60 * 1000).toISOString(), isRead: true,
     user: { id: 'u110', username: 'CharlotteF', avatar: 'https://i.pravatar.cc/100?img=38' },
