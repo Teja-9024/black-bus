@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "black-bus",
-    "slug": "black-bus",
+    "name": "sonu-petroleum",
+    "slug": "sonu-petroleum",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/blackbus.png",
-    "scheme": "friendzonefrontend",
+    "icon": "./assets/images/pimage.png",
+    "scheme": "sonupetroleumfrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {

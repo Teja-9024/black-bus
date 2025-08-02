@@ -30,7 +30,7 @@ export const connectSocket = (userId: string) => {
   });
 
   socket.on('connect_error', (error) => {
-    console.error('Socket connection error:', error.message);
+    // console.error('Socket connection error:', error.message);
   });
 
   socket.on('reconnect_attempt', (attemptNumber) => {
@@ -38,11 +38,11 @@ export const connectSocket = (userId: string) => {
   });
 
   socket.on('reconnect_error', (error) => {
-    console.error('Socket reconnect error:', error.message);
+    // console.error('Socket reconnect error:', error.message);
   });
 
   socket.on('reconnect_failed', () => {
-    console.error('Socket reconnect failed permanently.');
+    // console.error('Socket reconnect failed permanently.');
   });
 
   return socket;
