@@ -118,7 +118,7 @@ export default function HomeScreen() {
           }
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
-              <SimpleLineIcons name="heart" size={24} color={colors.text} />
+              <SimpleLineIcons name="bell" size={24} color={colors.text} />
               {hasUnreadNotifications && (
                 <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
               )}
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   leftContent: {
-    flexDirection: 'row',
+    // flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
   },
