@@ -4,18 +4,18 @@ import { ThemeType, useThemeStore } from "@/store/themeStore";
 import { AuthSession } from "@/types/auth-session.type";
 import { User } from "@/types/user.type";
 import {
-    getAuthSession,
-    removeAuthSession,
-    storeAuthSession,
+  getAuthSession,
+  removeAuthSession,
+  storeAuthSession,
 } from "@/utils/auth-storage";
 import { removeFilterSettings } from "@/utils/filter-storage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React, {
-    createContext,
-    ReactNode,
-    useContext,
-    useLayoutEffect,
-    useState,
+  createContext,
+  ReactNode,
+  useContext,
+  useLayoutEffect,
+  useState,
 } from "react";
 
 interface AuthContextType {
@@ -155,8 +155,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           });
           return;
         }
-        const userProfile = await ProfileServices.getProfile(token);
-        setUser(userProfile);
+        // const userProfile = await ProfileServices.getProfile(token);
+        // setUser(userProfile);
       }
     } catch (error: any) {
       console.error("Error while fetching profile:", error);
