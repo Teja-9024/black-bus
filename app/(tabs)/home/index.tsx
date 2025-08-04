@@ -146,22 +146,6 @@ const recentDeliveries = [
               )} */}
             </TouchableOpacity>
           }
-          // rightContent2={
-          //   <TouchableOpacity onPress={() => router.push("/(chat)")} style={styles.chatIconContainer}>
-          //     <Ionicons
-          //       name="chatbubble-outline"
-          //       size={25}
-          //       color={colors.text}
-          //     />
-          //     {totalUnreadChats > 0 && (
-          //       <ThemedView style={[styles.badge, { backgroundColor: 'red' }]}>
-          //         <ThemedText style={[styles.badgeText, { color: '#fff' }]}>
-          //           {totalUnreadChats > 99 ? '99+' : totalUnreadChats}
-          //         </ThemedText>
-          //       </ThemedView>
-          //     )}
-          //   </TouchableOpacity>
-          // }
           showBottomBorder={true}
         />
         <ScrollView>

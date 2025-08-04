@@ -1,5 +1,4 @@
 import CommonHeader from "@/components/CommonHeader";
-import RoleBadge from "@/components/RoleBadge";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
@@ -25,34 +24,19 @@ export default function IntakeScreen() {
         <CommonHeader
           leftContent={
             <View style={styles.leftContent}>
-              <ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>
-              <RoleBadge style={styles.roleBadge} />
+              <ThemedText style={styles.title}>Add Diesel Intake</ThemedText>
+              <ThemedText style={styles.titletext}>Record diesel received from pump</ThemedText>
+              {/* <RoleBadge style={styles.roleBadge} /> */}
             </View>
           }
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
-              <SimpleLineIcons name="heart" size={24} color={colors.text} />
+              <SimpleLineIcons name="bell" size={24} color={colors.text} />
               {/* {hasUnreadNotifications && (
-                <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
-              )} */}
+                        <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
+                      )} */}
             </TouchableOpacity>
           }
-          // rightContent2={
-          //   <TouchableOpacity onPress={() => router.push("/(chat)")} style={styles.chatIconContainer}>
-          //     <Ionicons
-          //       name="chatbubble-outline"
-          //       size={25}
-          //       color={colors.text}
-          //     />
-          //     {totalUnreadChats > 0 && (
-          //       <ThemedView style={[styles.badge, { backgroundColor: 'red' }]}>
-          //         <ThemedText style={[styles.badgeText, { color: '#fff' }]}>
-          //           {totalUnreadChats > 99 ? '99+' : totalUnreadChats}
-          //         </ThemedText>
-          //       </ThemedView>
-          //     )}
-          //   </TouchableOpacity>
-          // }
           showBottomBorder={true}
         />
       </ThemedSafeArea>
@@ -76,9 +60,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   leftContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+    // flexDirection: 'row',
+    // alignItems: 'center',
+    // gap: 10,
+  },
+  titletext:{
+    fontSize:14
   },
   roleBadge: {
     marginLeft: 8,
