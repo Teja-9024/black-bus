@@ -1,4 +1,5 @@
 import { HapticTab } from "@/components/HapticTab";
+import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -12,7 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-
+const { userRole } = useAuth();
   const basePaddingTop = 5; 
   const basePaddingBottomAndroid = 5;
   const basePaddingBottomIos = 20;
@@ -94,20 +95,24 @@ export default function TabLayout() {
           ),
         }}  
       />
+      
 
-      <Tabs.Screen
-        name="reports"
-        options={{
-          title: "Reports",
-          tabBarIcon: ({ focused }) => (
-            <Octicons
-              name={focused ? "report" : "report"}
-              size={26}
-              color={focused ? colors.tabBarActive : colors.tabBarInactive}
-            />
-          ),
-        }}
-      />
+      {userRole === 'owner' && (
+        <Tabs.Screen
+          name="reports"
+          options={{
+            title: "Reports",
+            tabBarIcon: ({ focused }) => (
+              <Octicons
+                name={focused ? "report" : "report"}
+                size={26}
+                color={focused ? colors.tabBarActive : colors.tabBarInactive}
+              />
+            ),
+          }}
+        />
+      )}
+
 
       <Tabs.Screen
         name="profile"

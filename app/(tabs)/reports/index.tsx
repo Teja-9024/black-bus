@@ -1,6 +1,11 @@
+export const options = {
+  href: null, // hide from tab bar if auto-detected
+};
+
+
 import CommonHeader from "@/components/CommonHeader";
-import ThemedSafeArea from "@/components/ThemedSafeArea";
 import RoleBadge from "@/components/RoleBadge";
+import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -19,6 +24,7 @@ import { ThemedView } from "@/components/ThemedView";
 import ChatService, { ChatPreviewResponse } from "@/services/ChatService";
 import NotificationService from "@/services/NotificationService";
 import { LinearGradient } from "expo-linear-gradient";
+
 
 export default function ReportsScreen() {
   const { colors } = useTheme();

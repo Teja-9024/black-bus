@@ -14,6 +14,7 @@ import React, {
   createContext,
   ReactNode,
   useContext,
+  useEffect,
   useLayoutEffect,
   useState,
 } from "react";
@@ -30,6 +31,7 @@ interface AuthContextType {
   loadUserProfile: () => Promise<void>;
   updateProfile: (data: any) => Promise<void>;
   accessToken: string | null;
+  userRole: string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -48,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authLoading, setAuthLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-
+  const [userRole, setUserRole] = useState<string>("worker");
   const setThemeFromStore = useThemeStore((state) => state.setTheme);
   const availableThemes = useThemeStore((state) => state.availableThemes);
 
@@ -201,6 +203,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("Failed to update profile");
     }
   };
+  
+  useEffect(() => {
+    const getRole = async () => {
+      try {
+        const storedRole = await AsyncStorage.getItem("userRole");
+        if (storedRole) {
+          setUserRole(storedRole);
+         
+        } else if (user?.role) {
+          setUserRole(user.role);
+        
+        }
+      } catch (error) {
+        console.error("Error getting role:", error);
+      }
+    };
+
+    getRole();
+  }, [user]);
 
   return (
     <AuthContext.Provider
@@ -216,6 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         loadUserProfile,
         updateProfile,
         accessToken,
+        userRole
       }}
     >
       {children}
