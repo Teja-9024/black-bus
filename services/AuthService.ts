@@ -1,3 +1,4 @@
+import { AuthSession } from "@/types/auth-session.type";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { _post, _put } from "../configs/api-methods.config";
 import {
@@ -5,18 +6,18 @@ import {
   ILoginResponse,
   IRegisterResponse,
   IResetPasswordResponse,
-  IVerifyEmailResponse,
   IUpdateThemeResponse,
+  IVerifyEmailResponse,
 } from "../types/auth-api.type";
-import { AuthSession } from "@/types/auth-session.type";
 
 class AuthServices {
   static async signIn(data: {
     email: string;
     password: string;
+    role: "owner" | "worker";
   }): Promise<ILoginResponse> {
     try {
-      return await _post("auth/login", data);
+      return await _post("users/login", data);
     } catch (error) {
       console.error("Error while login: ", error);
       throw error;
@@ -100,7 +101,7 @@ class AuthServices {
     const session: AuthSession = JSON.parse(storedSession);
 
     const response = await _post<{ accessToken: string }>(
-      "auth/refresh-token",
+      "users/refresh-token",
       { token: session.refreshToken },
       undefined
     );

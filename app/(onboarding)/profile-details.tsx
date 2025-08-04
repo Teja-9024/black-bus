@@ -1,71 +1,60 @@
-import React, { useEffect } from "react";
-import { StyleSheet, TextInput, Alert, ScrollView } from "react-native";
+import AuthFormLayout from "@/components/AuthFormLayout";
+import ThemedScrollView from "@/components/ThemedScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import Button from "@/components/Button";
-import { useForm, Controller, SubmitHandler } from "react-hook-form";
-import { useTheme } from "@/context/ThemeContext";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "expo-router";
-import { useLoadingDialog } from "@/context/LoadingContext";
-import AuthFormLayout from "@/components/AuthFormLayout";
-import ImagePickerComponent from "@/components/ImagePickerComponent";
-import DateTimePickerComponent from "@/components/DateTimePickerComponent";
-import { ProfileDetailsForm } from "@/types/form.type";
-import { showToast } from "@/constants/Functions";
-import ModalComponent from "@/components/ModalComponent";
-import ThemedScrollView from "@/components/ThemedScrollView";
+import React from "react";
+import { StyleSheet } from "react-native";
 
 export default function ProfileDetailsScreen() {
-  const { colors } = useTheme();
-  const router = useRouter();
-  const { user, updateProfile } = useAuth();
-  const loadingDialog = useLoadingDialog();
+  // const { colors } = useTheme();
+  // const router = useRouter();
+  // const { user, updateProfile } = useAuth();
+  // const loadingDialog = useLoadingDialog();
 
-  const {
-    control,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useForm<ProfileDetailsForm>({
-    defaultValues: {
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      gender: user?.gender || "",
-      dob: user?.dob ? new Date(user.dob) : null,
-      profileImage: user?.profileImage || null,
-    },
-  });
+  // const {
+  //   control,
+  //   handleSubmit,
+  //   setValue,
+  //   watch,
+  //   formState: { errors },
+  // } = useForm<ProfileDetailsForm>({
+  //   defaultValues: {
+  //     firstName: user?.firstName || "",
+  //     lastName: user?.lastName || "",
+  //     gender: user?.gender || "",
+  //     dob: user?.dob ? new Date(user.dob) : null,
+  //     profileImage: user?.profileImage || null,
+  //   },
+  // });
 
-  const selectedProfileImage = watch("profileImage");
+  // const selectedProfileImage = watch("profileImage");
 
-  const maxDate = new Date();
-  maxDate.setFullYear(maxDate.getFullYear() - 18);
+  // const maxDate = new Date();
+  // maxDate.setFullYear(maxDate.getFullYear() - 18);
 
-  useEffect(() => {
-    if (user) {
-      setValue("firstName", user.firstName || "");
-      setValue("lastName", user.lastName || "");
-      setValue("gender", user.gender || "");
-      setValue("dob", user.dob ? new Date(user.dob) : null);
-      setValue("profileImage", user.profileImage || null);
-    }
-  }, [user, setValue]);
+  // useEffect(() => {
+  //   if (user) {
+  //     setValue("firstName", user.firstName || "");
+  //     setValue("lastName", user.lastName || "");
+  //     setValue("gender", user.gender || "");
+  //     setValue("dob", user.dob ? new Date(user.dob) : null);
+  //     setValue("profileImage", user.profileImage || null);
+  //   }
+  // }, [user, setValue]);
 
-  const onSubmit: SubmitHandler<ProfileDetailsForm> = async (data) => {
-    try {
-      loadingDialog.show();
-      console.log("Profile details submitted:", data);
-      await updateProfile(data);
-      showToast("success", "Profile details saved successfully!");
-      router.push("/home");
-    } catch (err: any) {
-      showToast("error", err.message || "Failed to save profile details.");
-    } finally {
-      loadingDialog.hide();
-    }
-  };
+  // const onSubmit: SubmitHandler<ProfileDetailsForm> = async (data) => {
+  //   try {
+  //     loadingDialog.show();
+  //     console.log("Profile details submitted:", data);
+  //     await updateProfile(data);
+  //     showToast("success", "Profile details saved successfully!");
+  //     router.push("/home");
+  //   } catch (err: any) {
+  //     showToast("error", err.message || "Failed to save profile details.");
+  //   } finally {
+  //     loadingDialog.hide();
+  //   }
+  // };
 
   return (
     <AuthFormLayout>
@@ -76,7 +65,7 @@ export default function ProfileDetailsScreen() {
           <ThemedText style={styles.title}>
             Profile Details
           </ThemedText>
-          <Controller
+          {/* <Controller
             control={control}
             name="profileImage"
             render={({ field: { onChange, value } }) => (
@@ -92,8 +81,8 @@ export default function ProfileDetailsScreen() {
                 )}
               </ThemedView>
             )}
-          />
-          <ThemedView style={styles.formContent}>
+          /> */}
+          {/* <ThemedView style={styles.formContent}>
             <Controller
               control={control}
               name="firstName"
@@ -205,12 +194,12 @@ export default function ProfileDetailsScreen() {
                 </ThemedView>
               )}
             />
-          </ThemedView>
-          <Button
+          </ThemedView> */}
+          {/* <Button
             title="Save Profile"
             onPress={handleSubmit(onSubmit)}
             style={styles.saveButton}
-          />
+          /> */}
         </ThemedView>
       </ThemedScrollView>
     </AuthFormLayout>

@@ -13,6 +13,7 @@ export interface User {
   theme: string;
   isVerified: boolean;
   isPrivate: boolean;
+  role: "owner" | "worker";
   createdAt: string;
   updatedAt: string;
   __v?: number;

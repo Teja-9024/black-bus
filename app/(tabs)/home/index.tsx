@@ -1,4 +1,5 @@
 import CommonHeader from "@/components/CommonHeader";
+import RoleBadge from "@/components/RoleBadge";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
@@ -10,8 +11,10 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
+  View,
 } from "react-native";
 
+import Button from "@/components/Button";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import ChatService, { ChatPreviewResponse } from "@/services/ChatService";
@@ -20,7 +23,7 @@ import { LinearGradient } from "expo-linear-gradient";
 
 export default function HomeScreen() {
   const { colors } = useTheme();
-  const { isAuthenticated, authLoading, user, accessToken } = useAuth();
+  const { isAuthenticated, authLoading, user, accessToken, signOut } = useAuth();
   const { socket } = useSocket();
   const router = useRouter();
 
@@ -98,12 +101,21 @@ export default function HomeScreen() {
   if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
   if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
-
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/(auth)/AuthChoice');
+    console.log('[auth.signOut] Removing session');
+  };
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
       <ThemedSafeArea style={styles.container}>
         <CommonHeader
-          leftContent={<ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>}
+          leftContent={
+            <View style={styles.leftContent}>
+              <ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>
+              <RoleBadge style={styles.roleBadge} />
+            </View>
+          }
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="heart" size={24} color={colors.text} />
@@ -130,6 +142,10 @@ export default function HomeScreen() {
           // }
           showBottomBorder={true}
         />
+         <Button
+              title="Log Out"
+              onPress={handleLogout}
+            />
       </ThemedSafeArea>
     </LinearGradient>
   );
@@ -149,6 +165,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roleBadge: {
+    marginLeft: 8,
   },
   chatIconContainer: {
     position: 'relative',

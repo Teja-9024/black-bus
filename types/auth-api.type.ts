@@ -5,6 +5,12 @@ export interface ILoginResponse {
   message: string;
   tokens: AuthSession;
   theme?: string;
+  user?: {
+    id: string;
+    email: string;
+    role: "owner" | "worker";
+    createdAt: string;
+  };
 }
 
 export interface IRegisterResponse {

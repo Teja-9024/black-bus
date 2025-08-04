@@ -13,6 +13,7 @@ import ThemedModal from "@/components/ThemedModal";
 import AuthModalContent from "@/components/AuthModalContent";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import CommonHeader from "@/components/CommonHeader";
+import RoleBadge from "@/components/RoleBadge";
 import KnockService, { KnockRequest } from "@/services/knockService";
 import { categorizeKnocks } from "@/utils/knock-utils";
 import { KnockListType } from "@/types/knock.type";
@@ -164,24 +165,27 @@ export default function ProfileScreen() {
       <ThemedSafeArea style={styles.safeAreaTransparentBg}>
         <CommonHeader
           leftContent={
-            <TouchableOpacity
-              style={styles.userHeader}
-              onPress={() => setShowMainModal(true)}
-            >
-              <Feather
-                name="lock"
-                size={18}
-                color={colors.text}
-                style={{ marginRight: 5 }}
-              />
-              <ThemedText style={styles.username}>{user.firstName}</ThemedText>
-              <FontAwesome5
-                name="chevron-down"
-                size={14}
-                color={colors.text}
-                style={{ marginLeft: 5 }}
-              />
-            </TouchableOpacity>
+            <View style={styles.leftContent}>
+              <TouchableOpacity
+                style={styles.userHeader}
+                onPress={() => setShowMainModal(true)}
+              >
+                <Feather
+                  name="lock"
+                  size={18}
+                  color={colors.text}
+                  style={{ marginRight: 5 }}
+                />
+                <ThemedText style={styles.username}>{user.firstName}</ThemedText>
+                <FontAwesome5
+                  name="chevron-down"
+                  size={14}
+                  color={colors.text}
+                  style={{ marginLeft: 5 }}
+                />
+              </TouchableOpacity>
+              <RoleBadge style={styles.roleBadge} />
+            </View>
           }
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/profile/settings")}>
@@ -395,6 +399,14 @@ const styles = StyleSheet.create({
   username: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roleBadge: {
+    marginLeft: 8,
   },
   profileInfoContainer: {
     alignItems: "center",

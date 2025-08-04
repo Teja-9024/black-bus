@@ -89,6 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [setThemeFromStore, availableThemes]);
 
   const signIn = async (sessionData: AuthSession) => {
+    console.log("signIn method called with sessionData:", sessionData);
     await storeAuthSession(sessionData);
     await AsyncStorage.setItem("userToken", sessionData.accessToken);
     setSession(sessionData);
@@ -100,7 +101,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     ) {
       setThemeFromStore(sessionData.theme as ThemeType);
     }
+    console.log("About to call loadUserProfile");
     await loadUserProfile(sessionData.accessToken);
+    console.log("loadUserProfile completed");
   };
 
   const signOut = async () => {
@@ -146,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             theme: "dark",
             isVerified: true,
             isPrivate: false,
+            role: "worker",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           });
@@ -155,8 +159,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(userProfile);
       }
     } catch (error: any) {
-      await signOut();
-      throw error;
+      console.error("Error while fetching profile:", error);
+      // Don't sign out immediately on profile fetch error
+      // Just log the error and continue with the session
+      // The user can still use the app, profile can be fetched later
+      console.log("Profile fetch failed, but continuing with session");
     }
   };
 

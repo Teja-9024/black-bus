@@ -7,6 +7,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useTheme } from "@/context/ThemeContext";
 import AuthServices from "@/services/AuthService";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import React from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -21,6 +22,7 @@ interface LoginScreenProps {
 type TFormData = {
   email: string;
   password: string;
+  role: "owner" | "worker";
 };
 
 export default function LoginScreen({
@@ -37,18 +39,37 @@ export default function LoginScreen({
   const onSubmit = async (formData: TFormData) => {
     try {
       loadingDialog.show();
-      const response = await AuthServices.signIn(formData);
+      
+      // Determine role based on email
+      const role = formData.email === "teja.mentem@gmail.com" ? "owner" : "worker";
+      
+      const loginData = {
+        ...formData,
+        role
+      };
+      
+      const response = await AuthServices.signIn(loginData);
+      console.log("response", response);
       if (response) {
+        console.log("About to call auth.signIn");
         await auth.signIn({
           accessToken: response.tokens.accessToken,
           refreshToken: response.tokens.refreshToken,
-          theme: response.theme,
+          theme: "dark",
         });
+        console.log("sd - auth.signIn completed successfully");
+        
+        // Store user role in AsyncStorage for later use
+        if (response.user) {
+          await AsyncStorage.setItem("userRole", response.user.role);
+        }
+        
         if (response.message) showToast("success", response.message);
         onCloseModal?.();
-        router.replace("/home");
+        router.replace("/(tabs)/home");
       }
     } catch (error) {
+      console.error("Error in onSubmit:", error);
       HandleApiError(error);
     } finally {
       loadingDialog.hide();

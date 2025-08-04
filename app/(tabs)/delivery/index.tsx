@@ -1,5 +1,6 @@
 import CommonHeader from "@/components/CommonHeader";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
+import RoleBadge from "@/components/RoleBadge";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketContext";
 import { useTheme } from "@/context/ThemeContext";
@@ -10,6 +11,7 @@ import {
   ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
+  View,
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -103,7 +105,12 @@ export default function DeliveryScreen() {
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
       <ThemedSafeArea style={styles.container}>
         <CommonHeader
-          leftContent={<ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>}
+          leftContent={
+            <View style={styles.leftContent}>
+              <ThemedText style={styles.title}>Sonu Petroleum Service</ThemedText>
+              <RoleBadge style={styles.roleBadge} />
+            </View>
+          }
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="heart" size={24} color={colors.text} />
@@ -149,6 +156,14 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "bold",
+  },
+  leftContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  roleBadge: {
+    marginLeft: 8,
   },
   chatIconContainer: {
     position: 'relative',
