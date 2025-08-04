@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   progressContainer: {
-    marginVertical: 10,
+    marginVertical: 0,
   },
   progressBar: {
     height: 8,
@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   capacity: {
-    fontSize: 13,
+    fontSize: 10,
     textAlign: "right",
   },
 });

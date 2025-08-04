@@ -1,11 +1,10 @@
-import React from 'react';
-import { StyleSheet, TouchableOpacity } from 'react-native';
-import { ThemedView } from './ThemedView';
-import { ThemedText } from './ThemedText';
-import { useTheme } from '@/context/ThemeContext';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
 interface RoleBadgeProps {
   style?: any;
@@ -45,12 +44,12 @@ export default function RoleBadge({ style }: RoleBadgeProps) {
     <ThemedView
       style={[
         styles.badge,
-        { backgroundColor: getRoleColor() },
+        // { backgroundColor: getRoleColor() },
         style,
       ]}
     >
       <ThemedText style={styles.roleText}>
-        {getRoleText()}
+        Sonu ({getRoleText()}) • 04 Aug 2025
       </ThemedText>
     </ThemedView>
   );
@@ -59,15 +58,14 @@ export default function RoleBadge({ style }: RoleBadgeProps) {
 const styles = StyleSheet.create({
   badge: {
     paddingHorizontal: 8,
-    paddingVertical: 4,
     borderRadius: 12,
     minWidth: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
+    // alignItems: 'center',
+    // justifyContent: 'center',
   },
   roleText: {
-    fontSize: 12,
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#000',
+    // color: '#000',
   },
 }); 

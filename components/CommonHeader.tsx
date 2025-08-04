@@ -1,8 +1,8 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { ThemedView } from './ThemedView';
-import { ThemedText } from './ThemedText';
 import { useTheme } from '@/context/ThemeContext';
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { ThemedText } from './ThemedText';
+import { ThemedView } from './ThemedView';
 
 interface CommonHeaderProps {
   leftContent?: React.ReactNode;
@@ -71,6 +71,8 @@ const styles = StyleSheet.create({
     minHeight: 50,
     overflow: 'hidden',
     alignItems: 'center',
+    backgroundColor:'#255babff'
+    // #255babff
   },
   headerBorder: {
     borderBottomWidth: 1,
