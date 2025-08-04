@@ -5,15 +5,17 @@ import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Octicons from '@expo/vector-icons/Octicons';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Tabs } from "expo-router";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
-const { userRole } = useAuth();
+  const { user } = useAuth();
+  const [userRole, setUserRole] = useState<string>("worker");
   const basePaddingTop = 5; 
   const basePaddingBottomAndroid = 5;
   const basePaddingBottomIos = 20;
@@ -28,6 +30,25 @@ const { userRole } = useAuth();
   const totalTabBarHeight =
     contentHeight + basePaddingTop + dynamicPaddingBottom;
 
+   useEffect(() => {
+    const getRole = async () => {
+      try {
+        const storedRole = await AsyncStorage.getItem("userRole");
+        if (storedRole) {
+          setUserRole(storedRole);
+         
+        } else if (user?.role) {
+          setUserRole(user.role);
+        
+        }
+      } catch (error) {
+        console.error("Error getting role:", error);
+      }
+    };
+
+    getRole();
+  }, [user]);
+  
   return (
     <Tabs
       screenOptions={{
@@ -96,23 +117,20 @@ const { userRole } = useAuth();
         }}  
       />
       
-
-      {userRole === 'owner' && (
-        <Tabs.Screen
-          name="reports"
-          options={{
-            title: "Reports",
-            tabBarIcon: ({ focused }) => (
-              <Octicons
-                name={focused ? "report" : "report"}
-                size={26}
-                color={focused ? colors.tabBarActive : colors.tabBarInactive}
-              />
-            ),
-          }}
-        />
-      )}
-
+      <Tabs.Screen
+        name="reports"
+        options={{
+          title: "Reports",
+          href: userRole === 'owner' ? '/reports' : null, // This will hide the tab completely
+          tabBarIcon: ({ focused }) => (
+            <Octicons
+              name={focused ? "report" : "report"}
+              size={26}
+              color={focused ? colors.tabBarActive : colors.tabBarInactive}
+            />
+          ),
+        }}
+      />
 
       <Tabs.Screen
         name="profile"

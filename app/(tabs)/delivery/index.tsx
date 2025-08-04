@@ -1,105 +1,23 @@
 import CommonHeader from "@/components/CommonHeader";
-import ThemedSafeArea from "@/components/ThemedSafeArea";
 import RoleBadge from "@/components/RoleBadge";
-import { useAuth } from "@/context/AuthContext";
-import { useSocket } from "@/context/SocketContext";
+import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
-import { Redirect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useRouter } from "expo-router";
+import React from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-import ChatService, { ChatPreviewResponse } from "@/services/ChatService";
-import NotificationService from "@/services/NotificationService";
 import { LinearGradient } from "expo-linear-gradient";
 
 export default function DeliveryScreen() {
   const { colors } = useTheme();
-  const { isAuthenticated, authLoading, user, accessToken } = useAuth();
-  const { socket } = useSocket();
   const router = useRouter();
 
-  const [unreadChatIds, setUnreadChatIds] = useState<Set<string>>(new Set());
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
-
-  const totalUnreadChats = unreadChatIds.size;
-
-  const fetchInitialUnreadChats = useCallback(async () => {
-    if (!accessToken) return;
-
-    try {
-      const res = await ChatService.getUserChats(accessToken, 1, 1000);
-      const chats: ChatPreviewResponse[] = res.chats || [];
-
-      const initialUnreadSet = new Set<string>();
-      chats.forEach(chat => {
-        if (chat.unreadCount > 0) {
-          initialUnreadSet.add(chat.id);
-        }
-      });
-      setUnreadChatIds(initialUnreadSet);
-    } catch (err) {
-      console.error("Error fetching initial unread chats:", err);
-    }
-  }, [accessToken]);
-
-  const fetchInitialUnreadNotificationCount = useCallback(async () => {
-    if (!accessToken) return;
-    try {
-      const res = await NotificationService.getUnreadNotificationCount(accessToken);
-      setHasUnreadNotifications(res.count > 0);
-    } catch (err) {
-      console.error("Error fetching initial unread notification count:", err);
-    }
-  }, [accessToken]);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchInitialUnreadChats();
-      fetchInitialUnreadNotificationCount();
-    }
-  }, [isAuthenticated, fetchInitialUnreadChats, fetchInitialUnreadNotificationCount]);
-
-  useEffect(() => {
-    if (!socket || !user) return;
-
-    socket.emit("setUserId", user._id);
-
-    const handleChatPreviewUpdate = (chatPreview: ChatPreviewResponse) => {
-      setUnreadChatIds((prevIds) => {
-        const newIds = new Set(prevIds);
-        if (chatPreview.unreadCount > 0) {
-          newIds.add(chatPreview.id);
-        } else {
-          newIds.delete(chatPreview.id);
-        }
-        return newIds;
-      });
-    };
-
-    const handleUnreadNotificationCountUpdate = ({ count }: { count: number }) => {
-      setHasUnreadNotifications(count > 0);
-    };
-
-    socket.on("chatPreviewUpdate", handleChatPreviewUpdate);
-    socket.on("unreadNotificationCountUpdate", handleUnreadNotificationCountUpdate);
-
-    return () => {
-      socket.off("chatPreviewUpdate", handleChatPreviewUpdate);
-      socket.off("unreadNotificationCountUpdate", handleUnreadNotificationCountUpdate);
-    };
-  }, [socket, user]);
-
-  if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
-
-  if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -114,9 +32,9 @@ export default function DeliveryScreen() {
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="heart" size={24} color={colors.text} />
-              {hasUnreadNotifications && (
+              {/* {hasUnreadNotifications && (
                 <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
-              )}
+              )} */}
             </TouchableOpacity>
           }
           // rightContent2={
