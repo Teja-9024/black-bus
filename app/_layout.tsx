@@ -10,6 +10,7 @@ import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { ActivityIndicator, StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 import Toast from "react-native-toast-message";
 
@@ -56,20 +57,24 @@ export default function RootLayout() {
     console.log("Fonts not loaded yet.");
     return null;
   }
+  const theme  = useTheme();
 
   return (
-    <GestureHandlerRootView style={styles.container}>
-      <ThemeProvider>
-        <LoadingDialogProvider>
-          <AuthProvider>
-            {/* Wrap RootLayoutContent with SocketProvider */}
-            <SocketProvider>
-              <RootLayoutContent />
-            </SocketProvider>
-          </AuthProvider>
-        </LoadingDialogProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+    <PaperProvider theme={theme}>
+      <GestureHandlerRootView style={styles.container}>
+        <ThemeProvider>
+          <LoadingDialogProvider>
+            <AuthProvider>
+              {/* Wrap RootLayoutContent with SocketProvider */}
+              <SocketProvider>
+                <RootLayoutContent />
+              </SocketProvider>
+            </AuthProvider>
+          </LoadingDialogProvider>
+        </ThemeProvider>
+      </GestureHandlerRootView>
+    </PaperProvider>
+   
   );
 }
 

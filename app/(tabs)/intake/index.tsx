@@ -2,21 +2,72 @@ import CommonHeader from "@/components/CommonHeader";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
+  Platform,
   StyleSheet,
   TouchableOpacity,
   View
 } from "react-native";
 
+import Button from "@/components/Button";
+import CustomTextInput from "@/components/CustomTextInput";
+import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
-import { LinearGradient } from "expo-linear-gradient";
+import { ThemedView } from "@/components/ThemedView";
+import { ScrollView } from "react-native-gesture-handler";
+
+// 🔸 Define form type
+type TFormData = {
+  vanName: string;
+  workerName: string;
+  pumpName: string;
+  litres: string;
+  amount: string;
+  intakeTime: Date;
+};
+
+const VAN_LIST = [
+  { vanName: "Van 1", vanid: "van1" },
+  { vanName: "Van 2", vanid: "van2" },
+  { vanName: "Van 3", vanid: "van3" },
+];
 
 export default function IntakeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors },
+  } = useForm<TFormData>({
+    defaultValues: {
+      intakeTime: new Date(),
+    },
+  });
 
+  const [inputType, setInputType] = useState<'litres' | 'amount'>('litres');
+  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  const litres = watch("litres") || "0.00";
+  const amount = watch("amount") || "0.00";
+  const rate = 92.5;
+
+  const calculateFromLitres = (val: string) => {
+    const parsed = parseFloat(val) || 0;
+    return (parsed * rate).toFixed(2);
+  };
+
+  const calculateFromAmount = (val: string) => {
+    const parsed = parseFloat(val) || 0;
+    return (parsed / rate).toFixed(2);
+  };
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -25,20 +76,167 @@ export default function IntakeScreen() {
           leftContent={
             <View style={styles.leftContent}>
               <ThemedText style={styles.title}>Add Diesel Intake</ThemedText>
-              <ThemedText style={styles.titletext}>Record diesel received from pump</ThemedText>
-              {/* <RoleBadge style={styles.roleBadge} /> */}
+              <ThemedText style={styles.subtitle}>Record diesel received from pump</ThemedText>
             </View>
           }
           rightContent1={
-            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
+            <TouchableOpacity
+              onPress={() => router.push("/(notifications)")}
+              style={styles.notificationIconContainer}
+            >
               <SimpleLineIcons name="bell" size={24} color={colors.text} />
-              {/* {hasUnreadNotifications && (
-                        <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
-                      )} */}
             </TouchableOpacity>
           }
           showBottomBorder={true}
         />
+
+        <ScrollView>
+          <ThemedView style={{ paddingHorizontal: 16, gap: 16 }}>
+            <Controller
+              control={control}
+              name="vanName"
+              rules={{ required: "Van name is required" }}
+              render={({ field: { onChange, value } }) => (
+                <CustomDropdown
+                  label="Select Van *"
+                  data={VAN_LIST}
+                  value={value}
+                  onChange={onChange}
+                  errorMsg={errors.vanName?.message}
+                  placeholder={"Select Van..."}
+                  labelField={"vanName"}
+                  valueField={"vanid"}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="workerName"
+              render={({ field: { value } }) => (
+                <CustomTextInput
+                  label="Worker Name"
+                  value={"Ramesh Singh"}
+                  editable={false}
+                  bordered
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="pumpName"
+              render={({ field: { value } }) => (
+                <CustomTextInput
+                  label="Pump Name"
+                  value={"Sonu Petroleum Service"}
+                  editable={false}
+                  bordered
+                />
+              )}
+            />
+
+            {/* Toggle Buttons */}
+            <View style={styles.toggleContainer}>
+              <TouchableOpacity
+                style={[styles.toggleButton, inputType === 'litres' && { backgroundColor: colors.primary }]}
+                onPress={() => setInputType('litres')}
+              >
+                <ThemedText style={[styles.toggleText, { color: inputType === 'litres' ? '#fff' : colors.text }]}>Enter Litres</ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, inputType === 'amount' && { backgroundColor: colors.primary }]}
+                onPress={() => setInputType('amount')}
+              >
+                <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Amount (₹)</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {inputType === 'litres' ? (
+              <Controller
+                control={control}
+                name="litres"
+                render={({ field: { value, onChange } }) => (
+                  <CustomTextInput
+                    label="Litres Received *"
+                    value={value}
+                    placeholder="Enter litres received"
+                    onChangeText={(text) => {
+                      onChange(text);
+                      setValue("amount", calculateFromLitres(text));
+                    }}
+                    keyboardType="decimal-pad"
+                    bordered
+                  />
+                )}
+              />
+            ) : (
+              <Controller
+                control={control}
+                name="amount"
+                render={({ field: { value, onChange } }) => (
+                  <CustomTextInput
+                    label="Amount (₹)"
+                    value={value}
+                    placeholder="Enter amount in ₹"
+                    onChangeText={(text) => {
+                      onChange(text);
+                      setValue("litres", calculateFromAmount(text));
+                    }}
+                    keyboardType="decimal-pad"
+                    bordered
+                  />
+                )}
+              />
+            )}
+
+            <ThemedView>
+              <ThemedText>Litres: {litres}L</ThemedText>
+              <ThemedText>Amount: ₹{amount}</ThemedText>
+              <ThemedText>Rate: ₹{rate}/L</ThemedText>
+            </ThemedView>
+
+            {/* Date Picker */}
+            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+              <Controller
+                control={control}
+                name="intakeTime"
+                render={({ field: { value } }) => (
+                  <CustomTextInput
+                    label="Date & Time"
+                    value={value?.toLocaleString?.() ?? ""}
+                    editable={false}
+                    bordered
+                  />
+                )}
+              />
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              <DateTimePicker
+                value={watch("intakeTime") || new Date()}
+                mode="datetime"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(false);
+                  if (selectedDate) {
+                    setValue("intakeTime", selectedDate);
+                  }
+                }}
+                maximumDate={new Date()}
+              />
+            )}
+          </ThemedView>
+          <ThemedView style={styles.buttonsContainer}>
+            <View style={{ flex: 1, marginRight: 10 }}>
+              <Button title="Save" onPress={() => console.log('')} style={styles.saveButton}/>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button title="Cancel" onPress={() => console.log('')} />
+            </View>
+          </ThemedView>
+        </ScrollView>
+        
       </ThemedSafeArea>
     </LinearGradient>
   );
@@ -52,59 +250,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-  activityIndicator: {
-    flex: 1,
-  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
+    color: "#fff",
+  },
+  subtitle: {
+    fontSize: 14,
+    color: "#ddd",
   },
   leftContent: {
-    // flexDirection: 'row',
-    // alignItems: 'center',
-    // gap: 10,
+    gap: 2,
   },
-  titletext:{
-    fontSize:14
+  toggleContainer: {
+    flexDirection: "row",
+    gap: 10,
   },
-  roleBadge: {
-    marginLeft: 8,
+  toggleButton: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    alignItems: "center",
   },
-  chatIconContainer: {
-    position: 'relative',
-    width: 25,
-    height: 25,
-    justifyContent: 'center',
-    alignItems: 'center',
+  toggleText: {
+    fontWeight: "bold",
   },
-  badge: {
-    position: "absolute",
-    top: -3,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
+  notificationIconContainer: {
+    position: "relative",
+    width: 24,
+    height: 24,
     justifyContent: "center",
     alignItems: "center",
   },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: "bold",
-    lineHeight: 18,
-  },
-  notificationIconContainer: {
-    position: 'relative',
-    width: 24,
-    height: 24,
-    justifyContent: 'center',
+  buttonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 15, 
+    gap: 10, 
+    marginTop: 10,
   },
-  notificationDot: {
-    position: 'absolute',
-    top: 1,
-    right: -2,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
+  saveButton:{
+    backgroundColor: "#FFC107", 
+  }
+
 });
