@@ -20,6 +20,7 @@ interface DateTimePickerComponentProps {
   onDateChange: (date: Date | null) => void;
   maximumDate?: Date;
   minimumDate?: Date;
+  mode?: 'datetime' | 'date'; // NEW PROP
 }
 
 export default function DateTimePickerComponent({
@@ -28,10 +29,11 @@ export default function DateTimePickerComponent({
   onDateChange,
   maximumDate,
   minimumDate,
+  mode = 'datetime', // DEFAULT
 }: DateTimePickerComponentProps) {
   const [show, setShow] = useState(false);
   const [tempDate, setTempDate] = useState<Date | null>(value || new Date());
-  const [currentMode, setCurrentMode] = useState<'date' | 'time'>('date');
+  const [currentMode, setCurrentMode] = useState<'date' | 'time'>(mode === 'date' ? 'date' : 'date');
   const { colors } = useTheme();
 
   // Reset tempDate when value changes
@@ -41,17 +43,19 @@ export default function DateTimePickerComponent({
 
   // Format date and time for display (DD-MM-YYYY HH:MM format)
   const formatDateTime = (date: Date | null) => {
-    if (!date) return "Select Date & Time";
-    
+    if (!date) return mode === 'date' ? "Select Date" : "Select Date & Time";
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
     const year = date.getFullYear();
+    if (mode === 'date') {
+      return `${day}-${month}-${year}`;
+    }
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    
     return `${day}-${month}-${year} ${hours}:${minutes}`;
   };
 
+  // Only show time picker if mode is not 'date'
   const handleDateTimeChange = (_event: any, selectedDate?: Date) => {
     if (Platform.OS === 'android') {
       if (_event.type === 'dismissed') {
@@ -59,17 +63,23 @@ export default function DateTimePickerComponent({
         setCurrentMode('date'); // Reset mode
         return;
       }
-      
       if (selectedDate) {
         if (currentMode === 'date') {
-          // Date selected, now show time picker
-          const newDateTime = new Date(tempDate || new Date());
-          newDateTime.setFullYear(selectedDate.getFullYear());
-          newDateTime.setMonth(selectedDate.getMonth());
-          newDateTime.setDate(selectedDate.getDate());
-          setTempDate(newDateTime);
-          setCurrentMode('time');
-          // Keep showing picker for time selection
+          if (mode === 'date') {
+            setTempDate(selectedDate);
+            onDateChange(selectedDate);
+            setShow(false);
+            setCurrentMode('date');
+          } else {
+            // Date selected, now show time picker
+            const newDateTime = new Date(tempDate || new Date());
+            newDateTime.setFullYear(selectedDate.getFullYear());
+            newDateTime.setMonth(selectedDate.getMonth());
+            newDateTime.setDate(selectedDate.getDate());
+            setTempDate(newDateTime);
+            setCurrentMode('time');
+            // Keep showing picker for time selection
+          }
         } else {
           // Time selected, combine and finish
           const finalDateTime = new Date(tempDate || new Date());
@@ -109,6 +119,7 @@ export default function DateTimePickerComponent({
     setShow(true);
   };
 
+  // Only show mode selector on iOS if mode is not 'date'
   const renderIOSModal = () => (
     <Modal 
       animationType="slide" 
@@ -126,37 +137,38 @@ export default function DateTimePickerComponent({
           onPress={(e) => e.stopPropagation()}
         >
           {/* Mode Switch Buttons for iOS */}
-          <View style={[styles.modeSelector, { backgroundColor: colors.border }]}>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                currentMode === 'date' && { backgroundColor: colors.primary }
-              ]}
-              onPress={() => setCurrentMode('date')}
-            >
-              <ThemedText style={[
-                styles.modeButtonText,
-                { color: currentMode === 'date' ? '#fff' : colors.text }
-              ]}>
-                Date
-              </ThemedText>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modeButton,
-                currentMode === 'time' && { backgroundColor: colors.primary }
-              ]}
-              onPress={() => setCurrentMode('time')}
-            >
-              <ThemedText style={[
-                styles.modeButtonText,
-                { color: currentMode === 'time' ? '#fff' : colors.text }
-              ]}>
-                Time
-              </ThemedText>
-            </TouchableOpacity>
-          </View>
-
+          {mode !== 'date' && (
+            <View style={[styles.modeSelector, { backgroundColor: colors.border }]}> 
+              <TouchableOpacity
+                style={[
+                  styles.modeButton,
+                  currentMode === 'date' && { backgroundColor: colors.primary }
+                ]}
+                onPress={() => setCurrentMode('date')}
+              >
+                <ThemedText style={[
+                  styles.modeButtonText,
+                  { color: currentMode === 'date' ? '#fff' : colors.text }
+                ]}>
+                  Date
+                </ThemedText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modeButton,
+                  currentMode === 'time' && { backgroundColor: colors.primary }
+                ]}
+                onPress={() => setCurrentMode('time')}
+              >
+                <ThemedText style={[
+                  styles.modeButtonText,
+                  { color: currentMode === 'time' ? '#fff' : colors.text }
+                ]}>
+                  Time
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          )}
           <DateTimePicker
             value={tempDate || new Date()}
             mode={currentMode}
@@ -168,7 +180,6 @@ export default function DateTimePickerComponent({
             minimumDate={minimumDate}
             style={{ width: "100%" }}
           />
-          
           <ThemedView style={styles.modalButtonRow}>
             <Button title="Cancel" onPress={handleCancel} style={styles.modalButton} />
             <Button title="Confirm" onPress={handleConfirm} style={styles.modalButton} />
@@ -178,13 +189,13 @@ export default function DateTimePickerComponent({
     </Modal>
   );
 
+  // Android picker: always use 'date' mode if mode is 'date'
   const renderAndroidPicker = () => {
     if (!show) return null;
-    
     return (
       <DateTimePicker
         value={tempDate || new Date()}
-        mode={currentMode}
+        mode={mode === 'date' ? 'date' : currentMode}
         display="default"
         // @ts-ignore
         is24Hour={true}
@@ -212,7 +223,9 @@ export default function DateTimePickerComponent({
           </ThemedText>
           <View style={styles.iconContainer}>
             <Icon name="calendar" size={18} color={colors.textDim} style={styles.calendarIcon} />
-            <Icon name="clock" size={18} color={colors.textDim} />
+            {mode !== 'date' && (
+              <Icon name="clock" size={18} color={colors.textDim} />
+            )}
           </View>
         </View>
       </TouchableOpacity>

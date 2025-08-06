@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -33,7 +33,6 @@ type TFormData = {
 const VAN_LIST = [
   { vanName: "Van 1", vanid: "van1" },
   { vanName: "Van 2", vanid: "van2" },
-  { vanName: "Van 3", vanid: "van3" },
 ];
 
 export default function IntakeScreen() {
