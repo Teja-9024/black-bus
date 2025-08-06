@@ -5,16 +5,17 @@ import { SimpleLineIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import Button from "@/components/Button";
 import CustomTextInput from "@/components/CustomTextInput";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useAuth } from "@/context/AuthContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
@@ -25,6 +26,7 @@ export default function SettingsScreen() {
 
   const [rate, setRate] = useState<string>('92.5');
   const [newRate, setNewRate] = useState<string>('');
+  const {signOut}=useAuth()
 
   const {
     control,
@@ -53,7 +55,11 @@ export default function SettingsScreen() {
     { id: '2', name: 'Van 2', driver: 'Ramesh Singh', stock: 1200 },
     ];
 
-
+    const handleLogout = async () => {
+        await signOut();
+        router.replace('/(auth)/login');
+        console.log('[auth.signOut] Removing session');
+      };
   return (
       <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
           <ThemedSafeArea style={styles.container}>
@@ -157,6 +163,11 @@ export default function SettingsScreen() {
                           <ThemedText style={styles.value}>2</ThemedText>
                       </ThemedView>
                   </ThemedView>
+
+                <Button
+                  title="Log Out"
+                  onPress={handleLogout}
+                />
               </ScrollView>
                  
           </ThemedSafeArea>

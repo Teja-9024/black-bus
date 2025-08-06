@@ -13,7 +13,6 @@ import {
   View,
 } from "react-native";
 
-import Button from "@/components/Button";
 import RecentDeliveries from "@/components/RecentDeliveries";
 import SummaryCard from "@/components/SummaryCard";
 import { ThemedText } from "@/components/ThemedText";
@@ -101,11 +100,6 @@ export default function HomeScreen() {
   if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
   if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
-  const handleLogout = async () => {
-    await signOut();
-    router.replace('/(auth)/AuthChoice');
-    console.log('[auth.signOut] Removing session');
-  };
   const vans = [
     { vanName: "Van 1", name: "Ravi Kumar", dieselLevel: 650, maxCapacity: 1200 },
     { vanName: "Van 2", name: "Ramesh Kumar", dieselLevel: 300, maxCapacity: 1000 },
@@ -173,10 +167,6 @@ const recentDeliveries = [
 
         <RecentDeliveries deliveries={recentDeliveries} />
 
-         <Button
-              title="Log Out"
-              onPress={handleLogout}
-            />
         </ScrollView>
         
       </ThemedSafeArea>
