@@ -1,5 +1,4 @@
 import CommonHeader from "@/components/CommonHeader";
-import RoleBadge from "@/components/RoleBadge";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
@@ -25,16 +24,15 @@ export default function ReportsScreen() {
         <CommonHeader
           leftContent={
             <View style={styles.leftContent}>
-              <ThemedText style={styles.title}>Reports Dashboard</ThemedText>
-              <RoleBadge style={styles.roleBadge} />
+              <ThemedText style={styles.title}>Reports & Export</ThemedText>
             </View>
           }
           rightContent1={
-            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
-              <SimpleLineIcons name="heart" size={24} color={colors.text} />
-              {/* {hasUnreadNotifications && (
-                <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
-              )} */}
+            <TouchableOpacity
+              onPress={() => router.push("/(notifications)")}
+              style={styles.notificationIconContainer}
+            >
+              <SimpleLineIcons name="bell" size={24} color={colors.text} />
             </TouchableOpacity>
           }
           showBottomBorder={true}

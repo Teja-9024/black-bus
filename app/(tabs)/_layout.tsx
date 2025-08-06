@@ -133,6 +133,20 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Settings",
+          tabBarIcon: ({ focused }) => (
+            <Ionicons
+              name={focused ? "settings" : "settings-outline"}
+              size={26}
+              color={focused ? colors.tabBarActive : colors.tabBarInactive}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
