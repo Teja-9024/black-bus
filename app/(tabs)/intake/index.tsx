@@ -2,20 +2,19 @@ import CommonHeader from "@/components/CommonHeader";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Platform,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
 import CustomTextInput from "@/components/CustomTextInput";
+import DateTimePickerComponent from "@/components/DateTimePickerComponent";
 import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
@@ -53,7 +52,6 @@ export default function IntakeScreen() {
   });
 
   const [inputType, setInputType] = useState<'litres' | 'amount'>('litres');
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   const litres = watch("litres") || "0.00";
   const amount = watch("amount") || "0.00";
@@ -227,35 +225,18 @@ export default function IntakeScreen() {
             </ThemedView>
 
 
-            {/* Date Picker */}
-            <TouchableOpacity onPress={() => setShowDatePicker(true)}>
-              <Controller
-                control={control}
-                name="intakeTime"
-                render={({ field: { value } }) => (
-                  <CustomTextInput
-                    label="Date & Time"
-                    value={value?.toLocaleString?.() ?? ""}
-                    bordered
-                  />
-                )}
-              />
-            </TouchableOpacity>
-
-            {showDatePicker && (
-              <DateTimePicker
-                value={watch("intakeTime") || new Date()}
-                mode="datetime"
-                display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                onChange={(event, selectedDate) => {
-                  setShowDatePicker(false);
-                  if (selectedDate) {
-                    setValue("intakeTime", selectedDate);
-                  }
-                }}
-                maximumDate={new Date()}
-              />
-            )}
+            <Controller
+              control={control}
+              name="intakeTime"
+              render={({ field: { value, onChange } }) => (
+                <DateTimePickerComponent
+                  label="Date & Time"
+                  value={value}
+                  onDateChange={onChange}
+                  maximumDate={new Date()}
+                />
+              )}
+            />
           </ThemedView>
           <ThemedView style={styles.buttonsContainer}>
             <View style={{ flex: 1, marginRight: 10 }}>
