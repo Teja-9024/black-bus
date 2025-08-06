@@ -75,7 +75,7 @@ const CustomDropdown = ({
                       { color: colors.text },
                       disabled && styles.disabled,
                   ]}
-                  placeholderStyle={[styles.text, { color: colors.textDim }]}
+                  placeholderStyle={[styles.text, { color: colors.text }]}
                   itemContainerStyle={[styles.innerDropdownContainer]}
                   itemTextStyle={[styles.dropdownText, { color: colors.textSecondary }]}
                   inputSearchStyle={[

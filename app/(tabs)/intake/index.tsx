@@ -91,7 +91,7 @@ export default function IntakeScreen() {
         />
 
         <ScrollView>
-          <ThemedView style={{ paddingHorizontal: 16, gap: 16 }}>
+          <ThemedView style={{ paddingHorizontal: 16, gap: 16, marginTop: 16, }}>
             <Controller
               control={control}
               name="vanName"
@@ -190,11 +190,42 @@ export default function IntakeScreen() {
               />
             )}
 
-            <ThemedView>
-              <ThemedText>Litres: {litres}L</ThemedText>
-              <ThemedText>Amount: ₹{amount}</ThemedText>
-              <ThemedText>Rate: ₹{rate}/L</ThemedText>
+            <ThemedView
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                backgroundColor: colors.backgroundSecondary,
+                borderRadius: 10,
+                padding: 16,
+                marginTop: 12,
+                borderWidth: 1,
+                // borderColor: '#e0e0e0'
+                borderColor: '#555555',
+                
+              }}
+            >
+              <ThemedView style={{ alignItems: 'center' }}>
+                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Litres</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                  {litres}L
+                </ThemedText>
+              </ThemedView>
+
+              <ThemedView style={{ alignItems: 'center' }}>
+                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Amount</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                  ₹{amount}
+                </ThemedText>
+              </ThemedView>
+
+              <ThemedView style={{ alignItems: 'center' }}>
+                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Rate</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                  ₹{rate}/L
+                </ThemedText>
+              </ThemedView>
             </ThemedView>
+
 
             {/* Date Picker */}
             <TouchableOpacity onPress={() => setShowDatePicker(true)}>
@@ -205,7 +236,6 @@ export default function IntakeScreen() {
                   <CustomTextInput
                     label="Date & Time"
                     value={value?.toLocaleString?.() ?? ""}
-                    editable={false}
                     bordered
                   />
                 )}

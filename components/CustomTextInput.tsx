@@ -36,7 +36,7 @@ const CustomTextInput = ({
   const [isFocused, setIsFocused] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(true);
   
-
+  const isEditable = rest.editable !== false;
   return (
     <ThemedView
       lightColor={labelBackgroundColor}
@@ -71,6 +71,7 @@ const CustomTextInput = ({
                   : colors.border
                 : 'transparent',
             },
+            !isEditable && styles.nonEditable,
             style,
           ]}
           mode="outlined"
@@ -78,7 +79,7 @@ const CustomTextInput = ({
           activeUnderlineColor="transpare nt"
           placeholderTextColor={colors.textDim}
           cursorColor={colors.text}
-          textColor={colors.textDim}
+          textColor={colors.text}
           selectionColor={colors.primary}
           onSubmitEditing={Keyboard.dismiss}
           onFocus={() => setIsFocused(true)}
@@ -158,4 +159,8 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.5,
   },
+  nonEditable: {
+  backgroundColor: '#413d3dff', // or colors.disabledBackground if defined
+  opacity: 0.8, // gives a slightly dimmed feel
+},
 });
