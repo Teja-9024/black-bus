@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -17,6 +17,10 @@ import RecentDeliveries from "@/components/RecentDeliveries";
 import SummaryCard from "@/components/SummaryCard";
 import { ThemedText } from "@/components/ThemedText";
 import { VanCard } from "@/components/VanCard";
+import DeliveryService, { DeliveryItem } from "@/services/DeliveryService";
+import FuelRateService from "@/services/FuelRateService";
+import IntakeService, { IntakeItem } from "@/services/IntakeService";
+import VanService, { Van } from "@/services/VanService";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -28,8 +32,18 @@ export default function HomeScreen() {
 
   // const [unreadChatIds, setUnreadChatIds] = useState<Set<string>>(new Set());
   const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
+  const [currentRate, setCurrentRate] = useState<number>(0);
+  const [totalIntake, setTotalIntake] = useState<number>(0);
+  const [totalDelivered, setTotalDelivered] = useState<number>(0);
+  const [recentDeliveries, setRecentDeliveries] = useState<
+    { _id: string; customerName: string; deliveryTime: string; litres: number; amount: number }[]
+  >([]);
 
   // const totalUnreadChats = unreadChatIds.size;
+
+  const [vans, setVans] = useState<Van[]>([]);
+  const [vansLoading, setVansLoading] = useState<boolean>(false);
+  const [vansError, setVansError] = useState<string | null>(null);
 
   // const fetchInitialUnreadChats = useCallback(async () => {
   //   if (!accessToken) return;
@@ -97,30 +111,66 @@ export default function HomeScreen() {
   //   };
   // }, [socket, user]);
 
+
   if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
   if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
-  const vans = [
-    { vanName: "Van 1", name: "Ravi Kumar", dieselLevel: 650, maxCapacity: 1200 },
-    { vanName: "Van 2", name: "Ramesh Kumar", dieselLevel: 300, maxCapacity: 1000 },
-  ];
 
-const recentDeliveries = [
-  {
-    _id: "1",
-    customerName: "ABC Constructions",
-    deliveryTime: "2025-08-03T14:30:00Z",
-    litres: 320.5,
-    amount: 29565.75,
-  },
-  {
-    _id: "2",
-    customerName: "XYZ Industries",
-    deliveryTime: "2025-08-03T16:10:00Z",
-    litres: 210,
-    amount: 18900.0,
-  },
-];
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const isToday = (iso: string) => {
+      const d = new Date(iso);
+      const now = new Date();
+      return d.toDateString() === now.toDateString();
+    };
+
+    const fetchAll = async () => {
+      setVansLoading(true);
+      setVansError(null);
+      try {
+        const [vansRes, rateRes, intakesRes, deliveriesRes] = await Promise.all([
+          VanService.getVans(accessToken),
+          FuelRateService.getDieselRate(accessToken),
+          IntakeService.getIntakes(accessToken),
+          DeliveryService.getDeliveries(accessToken),
+        ]); 
+        console.log("intakesRes",intakesRes)  
+
+        setVans(vansRes || []);
+        setCurrentRate(rateRes || 0); 
+
+        const todaysIntakes = (intakesRes || []).filter((i: IntakeItem) => isToday(i.dateTime));
+        const todaysDeliveries = (deliveriesRes || []).filter((d: DeliveryItem) => isToday(d.dateTime));
+
+        const intakeLitres = todaysIntakes.reduce((sum, i) => sum + (i.litres || 0), 0);
+        const deliveredLitres = todaysDeliveries.reduce((sum, d) => sum + (d.litres || 0), 0);
+        setTotalIntake(intakeLitres);
+        setTotalDelivered(deliveredLitres);
+
+        const recentMapped = todaysDeliveries
+          .slice()
+          .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+          .slice(0, 5)
+          .map((d) => ({
+            _id: d._id,
+            customerName: d.customer,
+            deliveryTime: d.dateTime,
+            litres: d.litres,
+            amount: d.amount,
+          }));
+        setRecentDeliveries(recentMapped);
+      } catch (e: any) {
+        setVansError("Failed to load data");
+      } finally {
+        setVansLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, [accessToken]);
+
+  console.log("totalIntake",totalIntake) 
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -144,24 +194,32 @@ const recentDeliveries = [
         />
         <ScrollView>
           <View style={styles.vansContainer}>
-            {vans.map((van, index) => (
+            {vansLoading && (
+              <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="small" />
+            )}
+            {!vansLoading && vans.map((van) => (
               <VanCard
-                key={index}
-                vanName={van.vanName}
+                key={van._id}
+                vanName={van.vanNo || van.name}
                 name={van.name}
-                dieselLevel={van.dieselLevel}
-                maxCapacity={van.maxCapacity}
-                colors={colors} // from your theme
+                dieselLevel={van.currentDiesel}
+                maxCapacity={van.capacity}
+                colors={{
+                  cardBackground: colors.backgroundSecondary,
+                  text: colors.text,
+                  textDim: colors.textDim,
+                  border: colors.border,
+                }}
               />
             ))}
           </View>
 
           <SummaryCard
             summary={{
-              totalIntake: 1500,
-              totalDelivered: 1000,
-              netBalance: 500,
-              currentRate: 92.5,
+              totalIntake,
+              totalDelivered,
+              netBalance: totalIntake - totalDelivered,
+              currentRate,
             }}
           />
 

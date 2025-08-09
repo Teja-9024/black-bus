@@ -127,7 +127,7 @@ export default function SummaryCard({ summary }: SummaryCardProps) {
   const formatNumber = (n: number) => `${n >= 0 ? "+" : "-"}${Math.abs(n)}L`;
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: colors.cardBackground }]}>
+    <ThemedView style={[styles.container, { backgroundColor: colors.backgroundSecondary }]}>
       <View style={styles.header}>
         <MaterialCommunityIcons name="gas-station" size={20} color={colors.text} />
         <ThemedText style={[styles.title, { color: colors.text }]}>
@@ -179,8 +179,8 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: '#e0e0e0',
-    backgroundColor: '#fff',
+      borderColor: '#e0e0e0',
+      backgroundColor: '#fff',
     marginBottom: 8,
   },
   header: {

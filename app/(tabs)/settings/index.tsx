@@ -3,7 +3,7 @@ import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -16,6 +16,7 @@ import CustomTextInput from "@/components/CustomTextInput";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
+import FuelRateService from "@/services/FuelRateService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
@@ -24,9 +25,9 @@ export default function SettingsScreen() {
   const { colors } = useTheme();
   const router = useRouter();
 
-  const [rate, setRate] = useState<string>('92.5');
+  const [rate, setRate] = useState<string>('0');
   const [newRate, setNewRate] = useState<string>('');
-  const {signOut}=useAuth()
+  const {signOut, accessToken}=useAuth()
 
   const {
     control,
@@ -43,12 +44,23 @@ export default function SettingsScreen() {
     return (parsed * parseFloat(rate)).toFixed(2);
   };
 
-  const handleRateUpdate = () => {
-    if (newRate) {
-      setRate(newRate);
-      setNewRate('');
-    }
+  const handleRateUpdate = async () => {
+    if (!newRate || !accessToken) return;
+    const parsed = parseFloat(newRate);
+    if (Number.isNaN(parsed)) return;
+    const saved = await FuelRateService.setDieselRate(accessToken, parsed);
+    setRate(String(saved));
+    setNewRate('');
   };
+
+  useEffect(() => {
+    const init = async () => {
+      if (!accessToken) return;
+      const r = await FuelRateService.getDieselRate(accessToken);
+      setRate(String(r));
+    };
+    init();
+  }, [accessToken]);
 
     const vanData = [
     { id: '1', name: 'Van 1', driver: 'Ravi Kumar', stock: 1500 },
@@ -96,15 +108,15 @@ export default function SettingsScreen() {
                           <ThemedView style={{ flex: 0.7 }}>
                               <Controller
                                   control={control}
-                                  name="litres"
+                                   name="litres"
                                   render={({ field: { value, onChange } }) => (
                                       <CustomTextInput
                                           label="New Rate (₹/L)"
-                                          value={value}
+                                           value={newRate}
                                           placeholder="Enter new rate"
                                           onChangeText={(text) => {
-                                              onChange(text);
-                                              setValue("amount", calculateFromLitres(text));
+                                               onChange(text);
+                                               setNewRate(text);
                                           }}
                                           keyboardType="decimal-pad"
                                           bordered
