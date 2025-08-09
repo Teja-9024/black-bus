@@ -4,7 +4,7 @@ import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
   StyleSheet,
@@ -18,6 +18,10 @@ import DateTimePickerComponent from "@/components/DateTimePickerComponent";
 import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useAuth } from "@/context/AuthContext";
+import FuelRateService from "@/services/FuelRateService";
+import IntakeService from "@/services/IntakeService";
+import VanService, { Van } from "@/services/VanService";
 import { ScrollView } from "react-native-gesture-handler";
 
 // 🔸 Define form type
@@ -30,14 +34,12 @@ type TFormData = {
   intakeTime: Date;
 };
 
-const VAN_LIST = [
-  { vanName: "Van 1", vanid: "van1" },
-  { vanName: "Van 2", vanid: "van2" },
-];
+type VanOption = { vanName: string; vanid: string };
 
 export default function IntakeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
+  const { accessToken, user } = useAuth();
   const {
     control,
     handleSubmit,
@@ -51,10 +53,11 @@ export default function IntakeScreen() {
   });
 
   const [inputType, setInputType] = useState<'litres' | 'amount'>('litres');
+  const [rate, setRate] = useState<number>(0);
+  const [vanOptions, setVanOptions] = useState<VanOption[]>([]);
 
   const litres = watch("litres") || "0.00";
   const amount = watch("amount") || "0.00";
-  const rate = 92.5;
 
   const calculateFromLitres = (val: string) => {
     const parsed = parseFloat(val) || 0;
@@ -63,7 +66,43 @@ export default function IntakeScreen() {
 
   const calculateFromAmount = (val: string) => {
     const parsed = parseFloat(val) || 0;
+    if (!rate || rate <= 0) return "0.00";
     return (parsed / rate).toFixed(2);
+  };
+
+  useEffect(() => {
+    const init = async () => {
+      if (!accessToken) return;
+      const [r, vans] = await Promise.all([
+        FuelRateService.getDieselRate(accessToken),
+        VanService.getVans(accessToken),
+      ]);
+      setRate(r || 0);
+      const opts: VanOption[] = (vans || []).map((v: Van) => ({
+        vanName: `${v.vanNo} - ${v.name}`,
+        vanid: v.vanNo,
+      }));
+      setVanOptions(opts);
+    };
+    init();
+  }, [accessToken]);
+
+  const onSubmit = async (values: TFormData) => {
+    if (!accessToken) return;
+    const vanNo = values.vanName; // valueField is vanid
+    // const workerName = (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) || user?.email || values.workerName || "";
+    const litresNum = parseFloat(values.litres || "0");
+    const amountNum = parseFloat(values.amount || "0");
+    const payload = {
+      vanNo,
+      pumpName: values.pumpName || "Sonu Petroleum Service",
+      litres: litresNum,
+      amount: amountNum,
+      dateTime: (values.intakeTime || new Date()).toISOString(),
+    };
+    
+    const res=await IntakeService.addIntake(accessToken, payload);
+    console.log("addIntakeres",res)
   };
 
   return (
@@ -96,7 +135,7 @@ export default function IntakeScreen() {
               render={({ field: { onChange, value } }) => (
                 <CustomDropdown
                   label="Select Van *"
-                  data={VAN_LIST}
+                  data={vanOptions}
                   value={value}
                   onChange={onChange}
                   errorMsg={errors.vanName?.message}
@@ -113,7 +152,7 @@ export default function IntakeScreen() {
               render={({ field: { value } }) => (
                 <CustomTextInput
                   label="Worker Name"
-                  value={"Ramesh Singh"}
+                  value={( `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) || user?.email || ""}
                   editable={false}
                   bordered
                 />
@@ -239,7 +278,7 @@ export default function IntakeScreen() {
           </ThemedView>
           <ThemedView style={styles.buttonsContainer}>
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Button title="Save" onPress={() => console.log('')} style={styles.saveButton}/>
+              <Button title="Save" onPress={handleSubmit(onSubmit)} style={styles.saveButton}/>
             </View>
             <View style={{ flex: 1 }}>
               <Button title="Cancel" onPress={() => console.log('')} />

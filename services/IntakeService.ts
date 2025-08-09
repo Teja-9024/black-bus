@@ -1,4 +1,4 @@
-import { _get } from "@/configs/api-methods.config";
+import { _get, _post } from "@/configs/api-methods.config";
 
 export interface IntakeItem {
   _id: string;
@@ -20,6 +20,19 @@ class IntakeService {
     if (Array.isArray(res)) return res as IntakeItem[];
     if (Array.isArray(res?.data)) return res.data as IntakeItem[];
     return [];
+  }
+
+  static async addIntake(
+    token: string,
+    payload: {
+      vanNo: string;
+      pumpName: string;
+      litres: number;
+      amount: number;
+      dateTime: string;
+    }
+  ): Promise<any> {
+    return _post<any>("intakes/add-intake", payload, token);
   }
 }
 

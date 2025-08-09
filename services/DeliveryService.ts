@@ -1,4 +1,4 @@
-import { _get } from "@/configs/api-methods.config";
+import { _get, _post } from "@/configs/api-methods.config";
 
 export interface DeliveryItem {
   _id: string;
@@ -21,6 +21,20 @@ class DeliveryService {
     if (Array.isArray(res)) return res as DeliveryItem[];
     if (Array.isArray(res?.data)) return res.data as DeliveryItem[];
     return [];
+  }
+
+  static async createDelivery(
+    token: string,
+    payload: {
+      vanNo: string;
+      supplier: string;
+      customer: string;
+      litres: number;
+      amount: number;
+      dateTime: string;
+    }
+  ): Promise<any> {
+    return _post<any>("deliveries/create-delivery", payload, token);
   }
 }
 
