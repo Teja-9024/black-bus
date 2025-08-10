@@ -2,11 +2,13 @@ import AppLogo from "@/components/AppLogo";
 import AuthFormLayout from "@/components/AuthFormLayout";
 import Button from "@/components/Button";
 import { ThemedView } from "@/components/ThemedView";
+import { registerForPushNotificationsAsync } from "@/configs/notification.config";
 import { HandleApiError, showToast } from "@/constants/Functions";
 import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useTheme } from "@/context/ThemeContext";
 import AuthServices from "@/services/AuthService";
+import NotificationService from "@/services/NotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
 import React from "react";
@@ -67,6 +69,13 @@ export default function LoginScreen({
         if (response.message) showToast("success", response.message);
         onCloseModal?.();
         router.replace("/(tabs)/home");
+        const token = await registerForPushNotificationsAsync();
+        console.log("token",token)
+
+        if (token){
+          const NotificationServiceres=await NotificationService.sendTokenToBackend(token, response.tokens.accessToken);
+          console.log("NotificationServiceres",NotificationServiceres)
+        } 
       }
     } catch (error) {
       console.error("Error in onSubmit:", error);
@@ -93,6 +102,8 @@ export default function LoginScreen({
       loadingDialog.hide();
     }
   };
+
+  
 
   const loginContent = (
     <ThemedView

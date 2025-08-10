@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "sonu-petroleum",
-    "slug": "sonu-petroleum",
+    "slug": "sonu-petroleum-services",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/pimage.png",
@@ -16,15 +16,29 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "useNextNotificationsApi": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "extra": {
+      "eas": {
+        "projectId": "32cbf6f4-423c-457e-97fc-fee772c62a2f"
+      },
+      "router": {}
+    },
     "plugins": [
       "expo-router",
+      "expo-notifications",
       [
         "expo-splash-screen",
         {
@@ -70,6 +84,7 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "owner": "teja_jakhar"
   }
 }

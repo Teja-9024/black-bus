@@ -1,4 +1,4 @@
-import { _get, _put } from "../configs/api-methods.config";
+import { _post } from "../configs/api-methods.config";
 
 export interface NotificationResponse {
   id: string;
@@ -43,21 +43,26 @@ export interface UnreadNotificationCountResponse {
 }
 
 class NotificationService {
-  static async getUserNotifications(token: string, page: number = 1, limit: number = 15): Promise<GetNotificationsResponse> {
-    return await _get(`notifications?page=${page}&limit=${limit}`, token);
+
+  static async sendTokenToBackend(token: string, accessToken: string) {
+    return await _post(`notifications/register-token`, { token }, accessToken);
   }
 
-  static async getUnreadNotificationCount(token: string): Promise<UnreadNotificationCountResponse> { // New method
-    return await _get(`notifications/unread-count`, token);
-  }
+  // static async getUserNotifications(token: string, page: number = 1, limit: number = 15): Promise<GetNotificationsResponse> {
+  //   return await _get(`notifications?page=${page}&limit=${limit}`, token);
+  // }
 
-  static async markNotificationAsRead(notificationId: string, token: string): Promise<MarkNotificationReadResponse> {
-    return await _put(`notifications/${notificationId}/read`, {}, token);
-  }
+  // static async getUnreadNotificationCount(token: string): Promise<UnreadNotificationCountResponse> { // New method
+  //   return await _get(`notifications/unread-count`, token);
+  // }
 
-  static async markAllNotificationsAsRead(token: string): Promise<{ message: string }> {
-    return await _put(`notifications/read-all`, {}, token);
-  }
+  // static async markNotificationAsRead(notificationId: string, token: string): Promise<MarkNotificationReadResponse> {
+  //   return await _put(`notifications/${notificationId}/read`, {}, token);
+  // }
+
+  // static async markAllNotificationsAsRead(token: string): Promise<{ message: string }> {
+  //   return await _put(`notifications/read-all`, {}, token);
+  // }
 }
 
 export default NotificationService;
