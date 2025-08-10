@@ -20,6 +20,7 @@ import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
+import { useNotificationsCtx } from "@/context/NotificationContext";
 import DeliveryService from "@/services/DeliveryService";
 import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
@@ -56,6 +57,7 @@ export default function DeliveryScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { accessToken, user } = useAuth();
+  const { unread } = useNotificationsCtx();
   const {
     control,
     handleSubmit,
@@ -134,11 +136,15 @@ export default function DeliveryScreen() {
             </View>
           }
           rightContent1={
-            <TouchableOpacity
-              onPress={() => router.push("/(notifications)")}
-              style={styles.notificationIconContainer}
-            >
+            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="bell" size={24} color={colors.text} />
+              {unread > 0 && (
+                <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
+                  <ThemedText style={styles.notificationBadgeText}>
+                    {unread > 99 ? '99+' : unread}
+                  </ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
           }
           showBottomBorder={true}
@@ -369,6 +375,22 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: "center",
     alignItems: "center",
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   buttonsContainer: {
     flexDirection: 'row',

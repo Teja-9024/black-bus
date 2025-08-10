@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -19,6 +19,7 @@ import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
+import { useNotificationsCtx } from "@/context/NotificationContext";
 import FuelRateService from "@/services/FuelRateService";
 import IntakeService from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
@@ -40,6 +41,7 @@ export default function IntakeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const { accessToken, user } = useAuth();
+  const { unread } = useNotificationsCtx();
   const {
     control,
     handleSubmit,
@@ -116,11 +118,15 @@ export default function IntakeScreen() {
             </View>
           }
           rightContent1={
-            <TouchableOpacity
-              onPress={() => router.push("/(notifications)")}
-              style={styles.notificationIconContainer}
-            >
+            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="bell" size={24} color={colors.text} />
+              {unread > 0 && (
+                <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
+                  <ThemedText style={styles.notificationBadgeText}>
+                    {unread > 99 ? '99+' : unread}
+                  </ThemedText>
+                </View>
+              )}
             </TouchableOpacity>
           }
           showBottomBorder={true}
@@ -332,6 +338,21 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: "center",
     alignItems: "center",
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   buttonsContainer: {
     flexDirection: 'row',

@@ -2,17 +2,20 @@ import CommonHeader from "@/components/CommonHeader";
 import RoleBadge from "@/components/RoleBadge";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useAuth } from "@/context/AuthContext";
+import { useNotificationsCtx } from "@/context/NotificationContext";
+import { useSocket } from "@/context/SocketContext";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
+import { NotificationBadge } from "@/components/NotificationBadge";
 import RecentDeliveries from "@/components/RecentDeliveries";
 import SummaryCard from "@/components/SummaryCard";
 import { ThemedText } from "@/components/ThemedText";
@@ -27,7 +30,8 @@ import { ScrollView } from "react-native-gesture-handler";
 export default function HomeScreen() {
   const { colors } = useTheme();
   const { isAuthenticated, authLoading, user, accessToken, signOut } = useAuth();
-  // const { socket } = useSocket();
+  const { unread } = useNotificationsCtx();
+  const { socket } = useSocket();
   const router = useRouter();
 
   // const [unreadChatIds, setUnreadChatIds] = useState<Set<string>>(new Set());
@@ -185,9 +189,7 @@ export default function HomeScreen() {
           rightContent1={
             <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
               <SimpleLineIcons name="bell" size={24} color={colors.text} />
-              {/* {hasUnreadNotifications && (
-                <ThemedView style={[styles.notificationDot, { backgroundColor: 'red' }]} />
-              )} */}
+              <NotificationBadge count={unread} size="medium" />
             </TouchableOpacity>
           }
           showBottomBorder={true}
@@ -291,6 +293,21 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -10,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: 'white',
   },
   vansContainer: {
     flex: 1,

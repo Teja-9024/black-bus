@@ -5,10 +5,10 @@ import { SimpleLineIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -16,6 +16,7 @@ import CustomTextInput from "@/components/CustomTextInput";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
+import { useNotificationsCtx } from "@/context/NotificationContext";
 import FuelRateService from "@/services/FuelRateService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -28,6 +29,7 @@ export default function SettingsScreen() {
   const [rate, setRate] = useState<string>('0');
   const [newRate, setNewRate] = useState<string>('');
   const {signOut, accessToken}=useAuth()
+  const { unread } = useNotificationsCtx();
 
   const {
     control,
@@ -87,6 +89,13 @@ export default function SettingsScreen() {
                           style={styles.notificationIconContainer}
                       >
                           <SimpleLineIcons name="bell" size={24} color={colors.text} />
+                          {unread > 0 && (
+                            <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
+                              <ThemedText style={styles.notificationBadgeText}>
+                                {unread > 99 ? '99+' : unread}
+                              </ThemedText>
+                            </View>
+                          )}
                       </TouchableOpacity>
                   }
                   showBottomBorder={true}
@@ -218,6 +227,21 @@ const styles = StyleSheet.create({
     height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   reportsContent: {
     padding: 20,

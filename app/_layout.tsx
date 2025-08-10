@@ -2,6 +2,7 @@ import CustomToast from "@/components/CustomToast";
 import { ThemedView } from "@/components/ThemedView";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LoadingDialogProvider } from "@/context/LoadingContext";
+import { NotificationProvider } from "@/context/NotificationContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { useFonts } from "expo-font";
@@ -67,7 +68,9 @@ export default function RootLayout() {
             <AuthProvider>
               {/* Wrap RootLayoutContent with SocketProvider */}
               <SocketProvider>
-                <RootLayoutContent />
+                <NotificationProvider>
+                   <RootLayoutContent />
+                </NotificationProvider>
               </SocketProvider>
             </AuthProvider>
           </LoadingDialogProvider>
