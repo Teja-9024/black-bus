@@ -20,7 +20,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const bumpUnread = () => setUnread((n) => n + 1);
 
   const refreshUnreadFromList = async () => {
-    // simple: first page fetch karke unread count nikaal lo
     const res = await NotificationService.list(undefined, 50);
     const cnt = res.data.filter((n: any) => !n.isRead).length;
     setUnread(cnt);
@@ -30,28 +29,23 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     (async () => {
       if (Platform.OS === "android") await ensureAndroidChannel();
 
-      // 1) push token leke backend ko do
       const token = await registerForPushNotificationsAsync();
       if (token) {
         try { await NotificationService.registerToken(token); } catch (e) { /* ignore */ }
       }
-
-      // 2) app start pe unread refresh
+                  
       await refreshUnreadFromList();
 
-      // 3) foreground me jab notification aaye to locally badge badha do
       const sub1 = Notifications.addNotificationReceivedListener(() => {
         bumpUnread();
       });
 
-      // 4) jab user notification ko tap kare (background/killed), navigate
       const sub2 = Notifications.addNotificationResponseReceivedListener((resp) => {
         const data = resp.notification.request.content.data as any;
-        // simple: notifications page khol do; data.type/vanNo ke hisaab se navigate kar sakte ho
+      
         router.push("/notifications");
       });
 
-      // 5) killed state se open hua ho to last response handle
       (async () => {
         const last = await Notifications.getLastNotificationResponseAsync();
         if (last) {
