@@ -9,10 +9,10 @@ import { SimpleLineIcons } from "@expo/vector-icons";
 import { Redirect, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { NotificationBadge } from "@/components/NotificationBadge";
@@ -253,6 +253,7 @@ export default function HomeScreen() {
                   textDim: colors.textDim,
                   border: colors.border,
                 }}
+                workerName={van.workerName}
                 fullWidth={!vansLoading && vans.length === 1}
               />
             ))}

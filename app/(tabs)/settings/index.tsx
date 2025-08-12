@@ -5,10 +5,10 @@ import { SimpleLineIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -24,6 +24,7 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
+import { Text } from "react-native-paper";
 import Toast from "react-native-toast-message";
 
 export default function SettingsScreen() {
@@ -222,8 +223,8 @@ export default function SettingsScreen() {
                       {!vansLoading && vans.map((van) => (
                         <ThemedView key={van._id} style={styles.vanCard}>
                           <ThemedView>
-                            <ThemedText style={styles.vanName}>{van.name || van.vanNo}</ThemedText>
-                            <ThemedText style={styles.driverName}>{van.assignedWorker || 'Unassigned'}</ThemedText>
+                            <ThemedText style={styles.vanName}>{van.vanNo} - {van.name}</ThemedText>
+                            <ThemedText style={styles.driverName}><Text style={{ fontWeight: 'bold' }}>Worker: </Text>{van.workerName || 'Unassigned'}</ThemedText>
                           </ThemedView>
                           <ThemedView style={{ alignItems: 'flex-end' }}>
                             <ThemedText style={styles.stock}>{van.currentDiesel ?? 0}L</ThemedText>

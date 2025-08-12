@@ -11,6 +11,7 @@ export interface Van {
   totalFilled: number;
   totalDelivered: number;
   assignedWorker: string;
+  workerName:string;
   __v: number;
 }
 

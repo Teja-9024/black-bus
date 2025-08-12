@@ -16,6 +16,7 @@ type VanCardProps = {
   name: string;
   dieselLevel: number;
   maxCapacity: number;
+  workerName: string;
   colors: {
     cardBackground: string;
     text: string;
@@ -25,7 +26,7 @@ type VanCardProps = {
   fullWidth?: boolean;
 };
 
-export const VanCard = ({ vanName, name, dieselLevel, maxCapacity, colors, fullWidth = false }: VanCardProps) => {
+export const VanCard = ({ vanName, name, dieselLevel, maxCapacity, workerName, colors, fullWidth = false }: VanCardProps) => {
   const dieselPercentage = (dieselLevel / maxCapacity) * 100;
 
   return (
@@ -34,6 +35,7 @@ export const VanCard = ({ vanName, name, dieselLevel, maxCapacity, colors, fullW
         <MaterialCommunityIcons name="truck-delivery" size={26} color="white" />
         <ThemedText style={[styles.vanName, { color: colors.text }]}>{vanName}</ThemedText>
         <ThemedText style={[styles.name, { color: colors.text }]}>{name}</ThemedText>
+         <ThemedText style={[styles.name, { color: colors.text }]}>{workerName}</ThemedText>
         <ThemedText style={[styles.dieselLevel, { color: colors.textDim }]}>
           {dieselLevel.toFixed(1)}L / {maxCapacity}L
         </ThemedText>
@@ -88,6 +90,7 @@ const styles = StyleSheet.create({
   },
   name:{
     fontSize: 16,
+    textAlign:'center'
   },
   dieselLevel: {
     fontSize: 14,
