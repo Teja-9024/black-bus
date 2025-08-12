@@ -9,6 +9,7 @@ export interface ILoginResponse {
     id: string;
     email: string;
     role: "owner" | "worker";
+    name: string;
     createdAt: string;
   };
 }

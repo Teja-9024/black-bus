@@ -149,6 +149,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             isVerified: true,
             isPrivate: false,
             role: "worker",
+            name:"Teja",
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           });

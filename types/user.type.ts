@@ -14,6 +14,7 @@ export interface User {
   isVerified: boolean;
   isPrivate: boolean;
   role: "owner" | "worker";
+  name:string;
   createdAt: string;
   updatedAt: string;
   __v?: number;

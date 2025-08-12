@@ -11,11 +11,15 @@ import React, { useEffect, useState } from "react";
 import { Platform, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+type Role = 'owner' | 'worker';
+type UserData = { role: Role; name: string };
+
 export default function TabLayout() {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [userRole, setUserRole] = useState<string>("worker");
+  const [userData, setUserData] = useState<UserData>({ role: (user?.role as Role) || 'worker',
+    name: user?.name || 'User',});
   const basePaddingTop = 5; 
   const basePaddingBottomAndroid = 5;
   const basePaddingBottomIos = 20;
@@ -33,13 +37,21 @@ export default function TabLayout() {
    useEffect(() => {
     const getRole = async () => {
       try {
-        const storedRole = await AsyncStorage.getItem("userRole");
-        if (storedRole) {
-          setUserRole(storedRole);
-         
-        } else if (user?.role) {
-          setUserRole(user.role);
-        
+       const stored = await AsyncStorage.getItem('userData');
+        if (stored) {
+          // parse the JSON string you saved earlier
+          const parsed = JSON.parse(stored) as Partial<UserData>;
+          setUserData(prev => ({
+            role: (parsed.role as Role) || prev.role,
+            name: parsed.name || prev.name,
+          }));
+        }
+        else if (user?.role || user?.name) {
+          // fall back to context if nothing in storage
+          setUserData({
+            role: (user?.role as Role) || 'worker',
+            name: user?.name || 'User',
+          });
         }
       } catch (error) {
         console.error("Error getting role:", error);
@@ -121,7 +133,7 @@ export default function TabLayout() {
         name="reports"
         options={{
           title: "Reports",
-          href: userRole === 'owner' ? '/reports' : null, // This will hide the tab completely
+          href: userData.role === 'owner' ? '/reports' : null, // This will hide the tab completely
           tabBarIcon: ({ focused }) => (
             <Octicons
               name={focused ? "report" : "report"}

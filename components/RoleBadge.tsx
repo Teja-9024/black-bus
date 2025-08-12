@@ -6,50 +6,67 @@ import { StyleSheet } from 'react-native';
 import { ThemedText } from './ThemedText';
 import { ThemedView } from './ThemedView';
 
-interface RoleBadgeProps {
-  style?: any;
-}
+type Role = 'owner' | 'worker';
+type UserData = { role: Role; name: string };
+
+interface RoleBadgeProps { style?: any; }
 
 export default function RoleBadge({ style }: RoleBadgeProps) {
   const { colors } = useTheme();
   const { user } = useAuth();
-  const [role, setRole] = useState<string>("worker");
+
+  const [userData, setUserData] = useState<UserData>({
+    role: (user?.role as Role) || 'worker',
+    name: user?.name || 'User',
+  });
 
   useEffect(() => {
     const getRole = async () => {
       try {
-        const storedRole = await AsyncStorage.getItem("userRole");
-        if (storedRole) {
-          setRole(storedRole);
-        } else if (user?.role) {
-          setRole(user.role);
+        const stored = await AsyncStorage.getItem('userData');
+        if (stored) {
+          // parse the JSON string you saved earlier
+          const parsed = JSON.parse(stored) as Partial<UserData>;
+          setUserData(prev => ({
+            role: (parsed.role as Role) || prev.role,
+            name: parsed.name || prev.name,
+          }));
+        } 
+        else if (user?.role || user?.name) {
+          // fall back to context if nothing in storage
+          setUserData({
+            role: (user?.role as Role) || 'worker',
+            name: user?.name || 'User',
+          });
         }
       } catch (error) {
-        console.error("Error getting role:", error);
+        console.error('Error getting userData:', error);
       }
     };
 
     getRole();
   }, [user]);
 
-  const getRoleColor = () => {
-    return role === "owner" ? "#FFD700" : "#4CAF50";
-  };
+  const getRoleColor = () => (userData.role === 'owner' ? '#FFD700' : '#4CAF50');
 
-  const getRoleText = () => {
-    return role === "owner" ? "Owner" : "Worker";
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   return (
     <ThemedView
       style={[
         styles.badge,
-        // { backgroundColor: getRoleColor() },
+        { backgroundColor: getRoleColor() },
         style,
       ]}
     >
       <ThemedText style={styles.roleText}>
-        Sonu ({getRoleText()}) • 04 Aug 2025
+        {userData.name} ({userData.role}) • {formatDate(new Date())}
       </ThemedText>
     </ThemedView>
   );
@@ -60,12 +77,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 12,
     minWidth: 60,
-    // alignItems: 'center',
-    // justifyContent: 'center',
   },
   roleText: {
     fontSize: 16,
     fontWeight: 'bold',
-    // color: '#000',
   },
-}); 
+});

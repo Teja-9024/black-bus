@@ -63,7 +63,12 @@ export default function LoginScreen({
         
         // Store user role in AsyncStorage for later use
         if (response.user) {
-          await AsyncStorage.setItem("userRole", response.user.role);
+          // await AsyncStorage.setItem("userRole", response.user.role);
+          const userData = {
+            role: response.user.role,
+            name: response.user.name 
+          };
+          await AsyncStorage.setItem("userData", JSON.stringify(userData));
         }
         
         if (response.message) showToast("success", response.message);

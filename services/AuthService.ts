@@ -15,6 +15,7 @@ class AuthServices {
     email: string;
     password: string;
     role: "owner" | "worker";
+    name:string;
   }): Promise<ILoginResponse> {
     try {
       return await _post("users/login", data);
