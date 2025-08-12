@@ -8,9 +8,9 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -19,11 +19,14 @@ import DateTimePickerComponent from "@/components/DateTimePickerComponent";
 import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { HandleApiError, showToast } from "@/constants/Functions";
 import { useAuth } from "@/context/AuthContext";
+import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
 import DeliveryService from "@/services/DeliveryService";
 import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScrollView } from "react-native-gesture-handler";
 
 // 🔸 Define form type
@@ -58,6 +61,7 @@ export default function DeliveryScreen() {
   const router = useRouter();
   const { accessToken, user } = useAuth();
   const { unread } = useNotificationsCtx();
+  const loadingDialog = useLoadingDialog();
   const {
     control,
     handleSubmit,
@@ -73,6 +77,12 @@ export default function DeliveryScreen() {
   const [inputType, setInputType] = useState<'litres' | 'amount'>('litres');
   const [rate, setRate] = useState<number>(0);
   const [vanOptions, setVanOptions] = useState<VanOption[]>([]);
+  const [workerName, setWorkerName] = useState<string>("");
+  const [editing, setEditing] = useState<'litres' | 'amount' | null>(null);
+  const [hasEditedLitres, setHasEditedLitres] = useState(false);
+  const [hasEditedAmount, setHasEditedAmount] = useState(false);
+  const setVal = (name: keyof TFormData, value: string) =>
+    setValue(name, value, { shouldDirty: true, shouldValidate: false });
 
   const litres = watch("litres") || "0.00";
   const amount = watch("amount") || "0.00";
@@ -91,38 +101,89 @@ export default function DeliveryScreen() {
   useEffect(() => {
     const init = async () => {
       if (!accessToken) return;
-      const [r, vans] = await Promise.all([
-        FuelRateService.getDieselRate(accessToken),
-        VanService.getVans(accessToken),
-      ]);
-      setRate(r || 0);
-      const opts: VanOption[] = (vans || []).map((v: Van) => ({
-        vanName: `${v.vanNo} - ${v.name}`,
-        vanid: v.vanNo,
-      }));
-      setVanOptions(opts);
+      try {
+        loadingDialog.show();
+        const [r, vans] = await Promise.all([
+          FuelRateService.getDieselRate(accessToken),
+          VanService.getVans(accessToken),
+        ]);
+        setRate(r || 0);
+        // Prefill amount with rate only if empty; do not mark as edited
+        if (typeof r === 'number' && r > 0) {
+          const currentAmount = watch('amount');
+          if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
+            setValue("amount", String(r), { shouldDirty: false, shouldTouch: false });
+            setHasEditedAmount(false);
+          }
+        }
+        const opts: VanOption[] = (vans || []).map((v: Van) => ({
+          vanName: `${v.vanNo} - ${v.name}`,
+          vanid: v.vanNo,
+        }));
+        setVanOptions(opts);
+      } catch (e) {
+        HandleApiError(e);
+      } finally {
+        loadingDialog.hide();
+      }
     };
     init();
   }, [accessToken]);
 
+  // Load worker name from AsyncStorage (not from useAuth)
+  useEffect(() => {
+    const loadWorkerName = async () => {
+      try {
+        const stored = await AsyncStorage.getItem('userData');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.name) {
+            setWorkerName(parsed.name);
+            setValue('workerName', parsed.name);
+          }
+        }
+      } catch (_) {}
+    };
+    loadWorkerName();
+  }, [setValue]);
+
+  // When switching to Amount mode, if empty, prefill with current rate (not edited)
+  useEffect(() => {
+    if (inputType === 'amount' && rate > 0) {
+      const currentAmount = watch('amount');
+      if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
+        setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
+        setHasEditedAmount(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputType, rate]);
+
   const onSubmit = async (values: TFormData) => {
     if (!accessToken) return;
-    const vanNo = values.vanName; // valueField is vanid
-    // const workerName = (`${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) || user?.email || values.workerName || "";
-    const supplier = values.supplierName;
-    const customer = values.customerName;
-    const litresNum = parseFloat(values.litres || "0");
-    const amountNum = parseFloat(values.amount || "0");
-    const payload = {
-      vanNo,
-      supplier,
-      customer,
-      litres: litresNum,
-      amount: amountNum,
-      dateTime: (values.intakeTime || new Date()).toISOString(),
-    };
-    const res=await DeliveryService.createDelivery(accessToken, payload);
-    console.log("createDelivery",res)
+    try {
+      loadingDialog.show();
+      const vanNo = values.vanName; // valueField is vanid
+      const supplier = values.supplierName;
+      const customer = values.customerName;
+      const litresNum = parseFloat(values.litres || "0");
+      const amountNum = parseFloat(values.amount || "0");
+      const payload = {
+        vanNo,
+        supplier,
+        customer,
+        litres: litresNum,
+        amount: amountNum,
+        dateTime: (values.intakeTime || new Date()).toISOString(),
+      };
+      const res = await DeliveryService.createDelivery(accessToken, payload);
+      console.log("createDelivery", res);
+      showToast('success', 'Delivery saved successfully');
+    } catch (e) {
+      HandleApiError(e);
+    } finally {
+      loadingDialog.hide();
+    }
   };
 
   return (
@@ -173,10 +234,10 @@ export default function DeliveryScreen() {
             <Controller
               control={control}
               name="workerName"
-              render={({ field: { value } }) => (
+              render={() => (
                 <CustomTextInput
                   label="Worker Name"
-                  value={( `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim()) || user?.email || ""}
+                  value={workerName}
                   editable={false}
                   bordered
                 />
@@ -219,13 +280,33 @@ export default function DeliveryScreen() {
             <View style={styles.toggleContainer}>
               <TouchableOpacity
                 style={[styles.toggleButton, inputType === 'litres' && { backgroundColor: colors.primary }]}
-                onPress={() => setInputType('litres')}
+                onPress={() => {
+                  setInputType('litres');
+                  // Recalculate litres from amount ONLY if user actually edited amount
+                  if (hasEditedAmount) {
+                    const amtNow = watch('amount') || '0';
+                    setVal('litres', calculateFromAmount(amtNow));
+                  }
+                }}
               >
                 <ThemedText style={[styles.toggleText, { color: inputType === 'litres' ? '#fff' : colors.text }]}>Enter Litres</ThemedText>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.toggleButton, inputType === 'amount' && { backgroundColor: colors.primary }]}
-                onPress={() => setInputType('amount')}
+                onPress={() => {
+                  setInputType('amount');
+                  // Recalculate amount from litres ONLY if user actually edited litres
+                  if (hasEditedLitres) {
+                    const litNow = watch('litres') || '0';
+                    setVal('amount', calculateFromLitres(litNow));
+                  } else if (rate > 0) {
+                    const currentAmount = watch('amount');
+                    if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
+                      setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
+                      setHasEditedAmount(false);
+                    }
+                  }
+                }}
               >
                 <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Amount (₹)</ThemedText>
               </TouchableOpacity>
@@ -235,14 +316,19 @@ export default function DeliveryScreen() {
               <Controller
                 control={control}
                 name="litres"
-                render={({ field: { value, onChange } }) => (
+                render={({ field: { value } }) => (
                   <CustomTextInput
                     label="Litres Delivered * *"
                     value={value}
                     placeholder="Enter litres delivered *"
+                    onFocus={() => setEditing('litres')}
+                    onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
-                      onChange(text);
-                      setValue("amount", calculateFromLitres(text));
+                      setHasEditedLitres(true);
+                      setVal('litres', text);
+                      if (editing !== 'amount') {
+                        setVal('amount', calculateFromLitres(text));
+                      }
                     }}
                     keyboardType="decimal-pad"
                     bordered
@@ -253,14 +339,19 @@ export default function DeliveryScreen() {
               <Controller
                 control={control}
                 name="amount"
-                render={({ field: { value, onChange } }) => (
+                render={({ field: { value } }) => (
                   <CustomTextInput
                     label="Amount (₹)"
                     value={value}
-                    placeholder="Enter amount in ₹"
+                    placeholder={`Enter amount in ₹ (Rate: ₹${rate})`}
+                    onFocus={() => setEditing('amount')}
+                    onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
-                      onChange(text);
-                      setValue("litres", calculateFromAmount(text));
+                      setHasEditedAmount(true);
+                      setVal('amount', text);
+                      if (editing !== 'litres') {
+                        setVal('litres', calculateFromAmount(text));
+                      }
                     }}
                     keyboardType="decimal-pad"
                     bordered
