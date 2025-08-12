@@ -162,6 +162,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
+          href:null,
           tabBarIcon: ({ focused }) => (
             <Ionicons
               name={focused ? "person" : "person-outline"}
