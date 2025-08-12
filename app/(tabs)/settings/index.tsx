@@ -16,11 +16,14 @@ import CustomTextInput from "@/components/CustomTextInput";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
+import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
 import FuelRateService from "@/services/FuelRateService";
+import VanService, { Van } from "@/services/VanService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
+import Toast from "react-native-toast-message";
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
@@ -30,6 +33,10 @@ export default function SettingsScreen() {
   const [newRate, setNewRate] = useState<string>('');
   const {signOut, accessToken}=useAuth()
   const { unread } = useNotificationsCtx();
+  const { show, hide } = useLoadingDialog();
+
+  const [vans, setVans] = useState<Van[]>([]);
+  const [vansLoading, setVansLoading] = useState<boolean>(false);
 
   const {
     control,
@@ -49,25 +56,43 @@ export default function SettingsScreen() {
   const handleRateUpdate = async () => {
     if (!newRate || !accessToken) return;
     const parsed = parseFloat(newRate);
-    if (Number.isNaN(parsed)) return;
-    const saved = await FuelRateService.setDieselRate(accessToken, parsed);
-    setRate(String(saved));
-    setNewRate('');
+    if (Number.isNaN(parsed)) {
+      Toast.show({ type: 'error', text1: 'Please enter a valid rate' });
+      return;
+    }
+    try {
+      show();
+      const saved = await FuelRateService.setDieselRate(accessToken, parsed);
+      setRate(String(saved));
+      setNewRate('');
+      Toast.show({ type: 'success', text1: 'Diesel rate updated' });
+    } catch (e:any) {
+      Toast.show({ type: 'error', text1: 'Failed to update rate' });
+    } finally {
+      hide();
+    }
   };
 
   useEffect(() => {
     const init = async () => {
       if (!accessToken) return;
-      const r = await FuelRateService.getDieselRate(accessToken);
-      setRate(String(r));
+      try {
+        setVansLoading(true);
+        const [r, vansRes] = await Promise.all([
+          FuelRateService.getDieselRate(accessToken),
+          VanService.getVans(accessToken),
+        ]);
+        setRate(String(r));
+        setVans(vansRes ?? []);
+      } catch (e) {
+        // silent
+      } finally {
+        setVansLoading(false);
+      }
     };
     init();
   }, [accessToken]);
 
-    const vanData = [
-    { id: '1', name: 'Van 1', driver: 'Ravi Kumar', stock: 1500 },
-    { id: '2', name: 'Van 2', driver: 'Ramesh Singh', stock: 1200 },
-    ];
 
     const handleLogout = async () => {
         await signOut();
@@ -146,18 +171,23 @@ export default function SettingsScreen() {
                           <Ionicons name="bus-outline" size={18} color="#007AFF" style={{ marginRight: 6 }} />
                           <ThemedText style={styles.vanInfoTitle}>Van Information</ThemedText>
                       </ThemedView>
-
-                      {vanData.map((van) => (
-                          <ThemedView key={van.id} style={styles.vanCard}>
-                              <ThemedView>
-                                  <ThemedText style={styles.vanName}>{van.name}</ThemedText>
-                                  <ThemedText style={styles.driverName}>{van.driver}</ThemedText>
-                              </ThemedView>
-                              <ThemedView style={{ alignItems: 'flex-end' }}>
-                                  <ThemedText style={styles.stock}>{van.stock}L</ThemedText>
-                                  <ThemedText style={styles.stockLabel}>Current Stock</ThemedText>
-                              </ThemedView>
+                      {vansLoading && (
+                        <ThemedText style={{ color: '#888' }}>Loading vans...</ThemedText>
+                      )}
+                      {!vansLoading && vans.length === 0 && (
+                        <ThemedText style={{ color: '#888' }}>No vans found</ThemedText>
+                      )}
+                      {!vansLoading && vans.map((van) => (
+                        <ThemedView key={van._id} style={styles.vanCard}>
+                          <ThemedView>
+                            <ThemedText style={styles.vanName}>{van.name || van.vanNo}</ThemedText>
+                            <ThemedText style={styles.driverName}>{van.assignedWorker || 'Unassigned'}</ThemedText>
                           </ThemedView>
+                          <ThemedView style={{ alignItems: 'flex-end' }}>
+                            <ThemedText style={styles.stock}>{van.currentDiesel ?? 0}L</ThemedText>
+                            <ThemedText style={styles.stockLabel}>Current Stock</ThemedText>
+                          </ThemedView>
+                        </ThemedView>
                       ))}
                   </ThemedView>
 
