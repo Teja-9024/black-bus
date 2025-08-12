@@ -22,13 +22,14 @@ type VanCardProps = {
     textDim: string;
     border: string;
   };
+  fullWidth?: boolean;
 };
 
-export const VanCard = ({ vanName, name, dieselLevel, maxCapacity, colors }: VanCardProps) => {
+export const VanCard = ({ vanName, name, dieselLevel, maxCapacity, colors, fullWidth = false }: VanCardProps) => {
   const dieselPercentage = (dieselLevel / maxCapacity) * 100;
 
   return (
-    <ThemedView style={[styles.container, { backgroundColor: colors.cardBackground }]}>
+    <ThemedView style={[styles.container, fullWidth && styles.fullWidth, { backgroundColor: colors.cardBackground }]}> 
       <ThemedView style={styles.header}>
         <MaterialCommunityIcons name="truck-delivery" size={26} color="white" />
         <ThemedText style={[styles.vanName, { color: colors.text }]}>{vanName}</ThemedText>
@@ -71,6 +72,9 @@ const styles = StyleSheet.create({
     borderColor: '#e0e0e0',
     backgroundColor: '#fff',
     marginBottom: 8,
+  },
+  fullWidth: {
+    width: '100%',
   },
   header: {
     // flexDirection: "row",

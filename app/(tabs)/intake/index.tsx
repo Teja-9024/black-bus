@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -43,7 +43,7 @@ type VanOption = { vanName: string; vanid: string };
 export default function IntakeScreen() {
   const { colors } = useTheme();
   const router = useRouter();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const { unread } = useNotificationsCtx();
   const loadingDialog = useLoadingDialog();
 
@@ -63,6 +63,8 @@ export default function IntakeScreen() {
   const [rate, setRate] = useState<number>(0);
   const [vanOptions, setVanOptions] = useState<VanOption[]>([]);
   const [workerName, setWorkerName] = useState<string>("");
+  const [isWorker, setIsWorker] = useState<boolean>(false);
+  const [workerId, setWorkerId] = useState<string>("");
 
   // guards to avoid ping-pong + unwanted conversions
   const [editing, setEditing] = useState<'litres' | 'amount' | null>(null);
@@ -87,6 +89,31 @@ export default function IntakeScreen() {
   };
 
   useEffect(() => {
+    // Load role/name fallback
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem('userData');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.role) setIsWorker(parsed.role === 'worker');
+          if (parsed?.name) {
+            setWorkerName(parsed.name);
+            setValue('workerName', parsed.name);
+          }
+          if (parsed?.id) setWorkerId(parsed.id);
+          return;
+        }
+      } catch {}
+      setIsWorker(user?.role === 'worker');
+      if (user?.name) {
+        setWorkerName(user.name);
+        setValue('workerName', user.name);
+      }
+      if (user?._id) setWorkerId(user._id);
+    })();
+  }, [user?.role, user?.name, setValue]);
+
+  useEffect(() => {
     const init = async () => {
       if (!accessToken) return;
       try {
@@ -106,11 +133,34 @@ export default function IntakeScreen() {
           }
         }
 
-        const opts: VanOption[] = (vans || []).map((v: Van) => ({
+        // Build van options, filter for worker role and preselect
+        let availableVans: Van[] = vans || [];
+        if (isWorker) {
+          const idToMatch = workerId || user?._id || '';
+          availableVans = availableVans.filter((v) => (v.assignedWorker || '') === idToMatch);
+          // Fallback: if backend doesn't include assignedWorker, try vanId equality
+          if (availableVans.length === 0) {
+            try {
+              const stored = await AsyncStorage.getItem('userData');
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                const vanId = parsed?.vanId as string | undefined;
+                if (vanId) {
+                  availableVans = (vans || []).filter((v) => v._id === vanId);
+                }
+              }
+            } catch {}
+          }
+        }
+        const opts: VanOption[] = (availableVans || []).map((v: Van) => ({
           vanName: `${v.vanNo} - ${v.name}`,
           vanid: v.vanNo,
         }));
         setVanOptions(opts);
+        // Preselect first/only allowed van
+        if (opts.length > 0) {
+          setValue("vanName", opts[0].vanid as any, { shouldDirty: false, shouldTouch: false });
+        }
       } catch (e) {
         HandleApiError(e);
       } finally {
@@ -119,7 +169,7 @@ export default function IntakeScreen() {
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [accessToken, isWorker, workerId]);
 
   // Load worker name from AsyncStorage (not from useAuth)
   useEffect(() => {
@@ -185,16 +235,18 @@ export default function IntakeScreen() {
             </View>
           }
           rightContent1={
-            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
-              <SimpleLineIcons name="bell" size={24} color={colors.text} />
-              {unread > 0 && (
-                <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
-                  <ThemedText style={styles.notificationBadgeText}>
-                    {unread > 99 ? '99+' : unread}
-                  </ThemedText>
-                </View>
-              )}
-            </TouchableOpacity>
+            isWorker ? null : (
+              <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
+                <SimpleLineIcons name="bell" size={24} color={colors.text} />
+                {unread > 0 && (
+                  <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
+                    <ThemedText style={styles.notificationBadgeText}>
+                      {unread > 99 ? '99+' : unread}
+                    </ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )
           }
           showBottomBorder={true}
         />
@@ -215,6 +267,7 @@ export default function IntakeScreen() {
                   placeholder={"Select Van..."}
                   labelField={"vanName"}
                   valueField={"vanid"}
+                  disabled={isWorker}
                 />
               )}
             />

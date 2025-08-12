@@ -24,6 +24,7 @@ import DeliveryService, { DeliveryItem } from "@/services/DeliveryService";
 import FuelRateService from "@/services/FuelRateService";
 import IntakeService, { IntakeItem } from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { ScrollView } from "react-native-gesture-handler";
 
@@ -48,6 +49,11 @@ export default function HomeScreen() {
   const [vans, setVans] = useState<Van[]>([]);
   const [vansLoading, setVansLoading] = useState<boolean>(false);
   const [vansError, setVansError] = useState<string | null>(null);
+  const [isWorker, setIsWorker] = useState<boolean>(false);
+  const [workerName, setWorkerName] = useState<string>("");
+  const [workerId, setWorkerId] = useState<string>("");
+
+  console.log("vans",vans)
 
   // const fetchInitialUnreadChats = useCallback(async () => {
   //   if (!accessToken) return;
@@ -115,6 +121,25 @@ export default function HomeScreen() {
   //   };
   // }, [socket, user]);
 
+  // Load userData fallback for role/name
+  useEffect(() => {
+    (async () => {
+      try {
+        const stored = await AsyncStorage.getItem("userData");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed?.role) setIsWorker(parsed.role === "worker");
+          if (parsed?.name) setWorkerName(parsed.name);
+          if (parsed?.id) setWorkerId(parsed.id);
+          return;
+        }
+      } catch {}
+      setIsWorker(user?.role === "worker");
+      setWorkerName(user?.name || "");
+      if (user?._id) setWorkerId(user._id);
+    })();
+  }, [user?.role, user?.name]);
+
   // Ensure effect runs every render to preserve hook order
   useEffect(() => {
     if (!accessToken) return;
@@ -136,12 +161,25 @@ export default function HomeScreen() {
           DeliveryService.getDeliveries(accessToken),
         ]);
         console.log("intakesRes", intakesRes);
-
-        setVans(vansRes || []);
+        // Filter vans for worker role (supports AsyncStorage fallback)
+        let filteredVans: Van[] = vansRes || [];
+        console.log("filteredVans",filteredVans)
+        if (isWorker) {
+          const idToMatch = workerId || user?._id || "";
+          filteredVans = filteredVans.filter((v) => (v.assignedWorker || "") === idToMatch);
+        }
+        setVans(filteredVans);
         setCurrentRate(rateRes || 0);
 
-        const todaysIntakes = (intakesRes || []).filter((i: IntakeItem) => isToday(i.dateTime));
-        const todaysDeliveries = (deliveriesRes || []).filter((d: DeliveryItem) => isToday(d.dateTime));
+        // Allowed van numbers for current user (all for owner, assigned for worker)
+        const allowedVanNos = new Set((filteredVans || []).map((v) => v.vanNo));
+
+        const todaysIntakes = (intakesRes || [])
+          .filter((i: IntakeItem) => isToday(i.dateTime))
+          .filter((i: IntakeItem) => allowedVanNos.size === 0 || allowedVanNos.has(i.vanNo));
+        const todaysDeliveries = (deliveriesRes || [])
+          .filter((d: DeliveryItem) => isToday(d.dateTime))
+          .filter((d: DeliveryItem) => allowedVanNos.size === 0 || allowedVanNos.has(d.vanNo));
 
         const intakeLitres = todaysIntakes.reduce((sum, i) => sum + (i.litres || 0), 0);
         const deliveredLitres = todaysDeliveries.reduce((sum, d) => sum + (d.litres || 0), 0);
@@ -168,7 +206,7 @@ export default function HomeScreen() {
     };
 
     fetchAll();
-  }, [accessToken]);
+  }, [accessToken, isWorker, workerId]);
 
   if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
@@ -188,10 +226,12 @@ export default function HomeScreen() {
             </View>
           }
           rightContent1={
-            <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
-              <SimpleLineIcons name="bell" size={24} color={colors.text} />
-              <NotificationBadge count={unread} size="medium" />
-            </TouchableOpacity>
+            isWorker ? null : (
+              <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
+                <SimpleLineIcons name="bell" size={24} color={colors.text} />
+                <NotificationBadge count={unread} size="medium" />
+              </TouchableOpacity>
+            )
           }
           showBottomBorder={true}
         />
@@ -213,6 +253,7 @@ export default function HomeScreen() {
                   textDim: colors.textDim,
                   border: colors.border,
                 }}
+                fullWidth={!vansLoading && vans.length === 1}
               />
             ))}
           </View>

@@ -64,10 +64,20 @@ export default function LoginScreen({
         // Store user role in AsyncStorage for later use
         if (response.user) {
           // await AsyncStorage.setItem("userRole", response.user.role);
-          const userData = {
-            role: response.user.role,
-            name: response.user.name 
+          const rawUser: any = response.user as any;
+          const userData: any = {
+            role: rawUser.role,
+            name: rawUser.name,
+            id: rawUser.id || rawUser._id || '',
           };
+          // Persist van id if backend includes it
+          let vanId: any = rawUser.van;
+          if (vanId && typeof vanId === 'object') {
+            vanId = vanId.$oid || vanId._id || '';
+          }
+          if (typeof vanId === 'string' && vanId.length > 0) {
+            userData.vanId = vanId;
+          }
           await AsyncStorage.setItem("userData", JSON.stringify(userData));
         }
         
