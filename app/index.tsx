@@ -20,15 +20,15 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
   const router = useRouter();
   const { isAuthenticated, authLoading } = useAuth();
 
-  if (authLoading) return null;
-  if (isAuthenticated) return <Redirect href="/home" />;
-
   useEffect(() => {
     if (theme) {
       setTheme(theme);
     }
     console.log("welcome theme", theme);
   }, [theme, setTheme]);
+
+  if (authLoading) return null;
+  if (isAuthenticated) return <Redirect href="/home" />;
 
   return (
     <>

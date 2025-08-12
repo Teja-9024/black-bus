@@ -115,11 +115,7 @@ export default function HomeScreen() {
   //   };
   // }, [socket, user]);
 
-
-  if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
-
-  if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
-
+  // Ensure effect runs every render to preserve hook order
   useEffect(() => {
     if (!accessToken) return;
 
@@ -138,11 +134,11 @@ export default function HomeScreen() {
           FuelRateService.getDieselRate(accessToken),
           IntakeService.getIntakes(accessToken),
           DeliveryService.getDeliveries(accessToken),
-        ]); 
-        console.log("intakesRes",intakesRes)  
+        ]);
+        console.log("intakesRes", intakesRes);
 
         setVans(vansRes || []);
-        setCurrentRate(rateRes || 0); 
+        setCurrentRate(rateRes || 0);
 
         const todaysIntakes = (intakesRes || []).filter((i: IntakeItem) => isToday(i.dateTime));
         const todaysDeliveries = (deliveriesRes || []).filter((d: DeliveryItem) => isToday(d.dateTime));
@@ -174,8 +170,13 @@ export default function HomeScreen() {
     fetchAll();
   }, [accessToken]);
 
-  console.log("totalIntake",totalIntake) 
+  if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
+  if (!isAuthenticated) return <Redirect href="/(auth)/AuthChoice" />;
+
+  
+  console.log("totalIntake",totalIntake) 
+  
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
       <ThemedSafeArea style={styles.container}>

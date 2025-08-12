@@ -54,11 +54,12 @@ export default function RootLayout() {
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
+  const theme  = useTheme();
+
   if (!loaded) {
     console.log("Fonts not loaded yet.");
     return null;
   }
-  const theme  = useTheme();
 
   return (
     <PaperProvider theme={theme}>
