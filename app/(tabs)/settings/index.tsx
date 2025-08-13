@@ -22,6 +22,7 @@ import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native"; // 👈 added
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
 import { Text } from "react-native-paper";
@@ -33,7 +34,7 @@ export default function SettingsScreen() {
 
   const [rate, setRate] = useState<string>('0');
   const [newRate, setNewRate] = useState<string>('');
-  const {signOut, accessToken, user}=useAuth()
+  const { signOut, accessToken, user } = useAuth();
   const [isWorker, setIsWorker] = useState<boolean>(false);
   const [workerId, setWorkerId] = useState<string>("");
   const { unread } = useNotificationsCtx();
@@ -77,6 +78,7 @@ export default function SettingsScreen() {
     }
   };
 
+  // Load role/worker id once (from AsyncStorage, fallback to useAuth)
   useEffect(() => {
     (async () => {
       try {
@@ -93,182 +95,186 @@ export default function SettingsScreen() {
     })();
   }, [user?.role]);
 
-  useEffect(() => {
-    const init = async () => {
-      if (!accessToken) return;
-      try {
-        setVansLoading(true);
-        const [r, vansRes] = await Promise.all([
-          FuelRateService.getDieselRate(accessToken),
-          VanService.getVans(accessToken),
-        ]);
-        setRate(String(r));
-        // Filter vans for worker role using userId; fallback to vanId if provided
-        let filteredList = vansRes ?? [];
-        if (isWorker) {
-          let idToMatch = workerId || user?._id || '';
-          filteredList = filteredList.filter((v) => (v.assignedWorker || '') === idToMatch);
+  // 🔁 Fetch latest data whenever this screen gains focus
+  const fetchLatest = React.useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      setVansLoading(true);
+      const [r, vansRes] = await Promise.all([
+        FuelRateService.getDieselRate(accessToken),
+        VanService.getVans(accessToken),
+      ]);
+      setRate(String(r));
 
-          if (filteredList.length === 0) {
-            try {
-              const stored = await AsyncStorage.getItem('userData');
-              if (stored) {
-                const parsed = JSON.parse(stored);
-                const vanId = parsed?.vanId as string | undefined;
-                if (vanId) {
-                  filteredList = (vansRes ?? []).filter((v) => v._id === vanId);
-                }
+      // Filter vans for worker role using userId; fallback to vanId if provided
+      let filteredList = vansRes ?? [];
+      if (isWorker) {
+        let idToMatch = workerId || user?._id || '';
+        filteredList = filteredList.filter((v) => (v.assignedWorker || '') === idToMatch);
+
+        if (filteredList.length === 0) {
+          try {
+            const stored = await AsyncStorage.getItem('userData');
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              const vanId = parsed?.vanId as string | undefined;
+              if (vanId) {
+                filteredList = (vansRes ?? []).filter((v) => v._id === vanId);
               }
-            } catch {}
-          }
+            }
+          } catch {}
         }
-        setVans(filteredList);
-      } catch (e) {
-        // silent
-      } finally {
-        setVansLoading(false);
       }
-    };
-    init();
-  }, [accessToken, isWorker, workerId]);
+      setVans(filteredList);
+    } catch (e) {
+      // silent
+    } finally {
+      setVansLoading(false);
+    }
+  }, [accessToken, isWorker, workerId, user?._id]);
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchLatest();
+    }, [fetchLatest])
+  );
 
-    const handleLogout = async () => {
-        await signOut();
-        router.replace('/(auth)/login');
-        console.log('[auth.signOut] Removing session');
-      };
+  const handleLogout = async () => {
+    await signOut();
+    router.replace('/(auth)/login');
+    console.log('[auth.signOut] Removing session');
+  };
+
   return (
-      <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
-          <ThemedSafeArea style={styles.container}>
-              <CommonHeader
-                  leftContent={
-                      <View style={styles.leftContent}>
-                          <ThemedText style={styles.title}>Settings</ThemedText>
-                      </View>
-                  }
-                  rightContent1={
-                    isWorker ? null : (
-                      <TouchableOpacity
-                          onPress={() => router.push("/(notifications)")}
-                          style={styles.notificationIconContainer}
-                      >
-                          <SimpleLineIcons name="bell" size={24} color={colors.text} />
-                          {unread > 0 && (
-                            <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}> 
-                              <ThemedText style={styles.notificationBadgeText}>
-                                {unread > 99 ? '99+' : unread}
-                              </ThemedText>
-                            </View>
-                          )}
-                      </TouchableOpacity>
-                    )
-                  }
-                  showBottomBorder={true}
-              />
+    <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
+      <ThemedSafeArea style={styles.container}>
+        <CommonHeader
+          leftContent={
+            <View style={styles.leftContent}>
+              <ThemedText style={styles.title}>Settings</ThemedText>
+            </View>
+          }
+          rightContent1={
+            isWorker ? null : (
+              <TouchableOpacity
+                onPress={() => router.push("/(notifications)")}
+                style={styles.notificationIconContainer}
+              >
+                <SimpleLineIcons name="bell" size={24} color={colors.text} />
+                {unread > 0 && (
+                  <View style={[styles.notificationBadge, { backgroundColor: colors.primary }]}>
+                    <ThemedText style={styles.notificationBadgeText}>
+                      {unread > 99 ? '99+' : unread}
+                    </ThemedText>
+                  </View>
+                )}
+              </TouchableOpacity>
+            )
+          }
+          showBottomBorder={true}
+        />
 
-              <ScrollView>
-                  {!isWorker && (
-                    <ThemedView style={styles.reportsContent}>
-                        <ThemedView style={styles.titleContainer}>
-                            <Ionicons name="speedometer-outline" size={26} color="#fff" style={{ marginRight: 8 }} />
-                            <ThemedText style={styles.title}>Diesel Rate Management</ThemedText>
-                        </ThemedView>
+        <ScrollView>
+          {!isWorker && (
+            <ThemedView style={styles.reportsContent}>
+              <ThemedView style={styles.titleContainer}>
+                <Ionicons name="speedometer-outline" size={26} color="#fff" style={{ marginRight: 8 }} />
+                <ThemedText style={styles.title}>Diesel Rate Management</ThemedText>
+              </ThemedView>
 
-                        <ThemedView style={[styles.currentRateBox]}>
-                            <ThemedText style={styles.subtitle}>Current Rate</ThemedText>
-                            <ThemedText style={styles.welcomeText}>₹{rate}/L</ThemedText>
-                        </ThemedView>
+              <ThemedView style={[styles.currentRateBox]}>
+                <ThemedText style={styles.subtitle}>Current Rate</ThemedText>
+                <ThemedText style={styles.welcomeText}>₹{rate}/L</ThemedText>
+              </ThemedView>
 
-                        <ThemedView style={styles.inputRow}>
-                            <ThemedView style={{ flex: 0.7 }}>
-                                <Controller
-                                    control={control}
-                                     name="litres"
-                                    render={({ field: { value, onChange } }) => (
-                                        <CustomTextInput
-                                            label="New Rate (₹/L)"
-                                             value={newRate}
-                                            placeholder="Enter new rate"
-                                            onChangeText={(text) => {
-                                                 onChange(text);
-                                                 setNewRate(text);
-                                            }}
-                                            keyboardType="decimal-pad"
-                                            bordered
-                                        />
-                                    )}
-                                />
-                            </ThemedView>
+              <ThemedView style={styles.inputRow}>
+                <ThemedView style={{ flex: 0.7 }}>
+                  <Controller
+                    control={control}
+                    name="litres"
+                    render={({ field: { value, onChange } }) => (
+                      <CustomTextInput
+                        label="New Rate (₹/L)"
+                        value={newRate}
+                        placeholder="Enter new rate"
+                        onChangeText={(text) => {
+                          onChange(text);
+                          setNewRate(text);
+                        }}
+                        keyboardType="decimal-pad"
+                        bordered
+                      />
+                    )}
+                  />
+                </ThemedView>
 
-                            <ThemedView style={{ flex: 0.3, marginTop: 26 }}>
-                                <Button title="Update" onPress={handleRateUpdate} style={styles.button} />
-                            </ThemedView>
+                <ThemedView style={{ flex: 0.3, marginTop: 26 }}>
+                  <Button title="Update" onPress={handleRateUpdate} style={styles.button} />
+                </ThemedView>
+              </ThemedView>
+            </ThemedView>
+          )}
 
-                        </ThemedView>
-                    </ThemedView>
-                  )}
+          <ThemedView style={styles.vanInfoBox}>
+            <ThemedView style={styles.vanInfoHeader}>
+              <Ionicons name="bus-outline" size={18} color="#007AFF" style={{ marginRight: 6 }} />
+              <ThemedText style={styles.vanInfoTitle}>Van Information</ThemedText>
+            </ThemedView>
+            {vansLoading && (
+              <ThemedText style={{ color: '#888' }}>Loading vans...</ThemedText>
+            )}
+            {!vansLoading && vans.length === 0 && (
+              <ThemedText style={{ color: '#888' }}>No vans found</ThemedText>
+            )}
+            {!vansLoading && vans.map((van) => (
+              <ThemedView key={van._id} style={styles.vanCard}>
+                <ThemedView>
+                  <ThemedText style={styles.vanName}>{van.vanNo} - {van.name}</ThemedText>
+                  <ThemedText style={styles.driverName}><Text style={{ fontWeight: 'bold' }}>Worker: </Text>{van.workerName || 'Unassigned'}</ThemedText>
+                </ThemedView>
+                <ThemedView style={{ alignItems: 'flex-end' }}>
+                  <ThemedText style={styles.stock}>{van.currentDiesel ?? 0}L</ThemedText>
+                  <ThemedText style={styles.stockLabel}>Current Stock</ThemedText>
+                </ThemedView>
+              </ThemedView>
+            ))}
+          </ThemedView>
 
-                  <ThemedView style={styles.vanInfoBox}>
-                      <ThemedView style={styles.vanInfoHeader}>
-                          <Ionicons name="bus-outline" size={18} color="#007AFF" style={{ marginRight: 6 }} />
-                          <ThemedText style={styles.vanInfoTitle}>Van Information</ThemedText>
-                      </ThemedView>
-                      {vansLoading && (
-                        <ThemedText style={{ color: '#888' }}>Loading vans...</ThemedText>
-                      )}
-                      {!vansLoading && vans.length === 0 && (
-                        <ThemedText style={{ color: '#888' }}>No vans found</ThemedText>
-                      )}
-                      {!vansLoading && vans.map((van) => (
-                        <ThemedView key={van._id} style={styles.vanCard}>
-                          <ThemedView>
-                            <ThemedText style={styles.vanName}>{van.vanNo} - {van.name}</ThemedText>
-                            <ThemedText style={styles.driverName}><Text style={{ fontWeight: 'bold' }}>Worker: </Text>{van.workerName || 'Unassigned'}</ThemedText>
-                          </ThemedView>
-                          <ThemedView style={{ alignItems: 'flex-end' }}>
-                            <ThemedText style={styles.stock}>{van.currentDiesel ?? 0}L</ThemedText>
-                            <ThemedText style={styles.stockLabel}>Current Stock</ThemedText>
-                          </ThemedView>
-                        </ThemedView>
-                      ))}
-                  </ThemedView>
+          <ThemedView style={styles.appInfoBox}>
+            <ThemedText style={styles.appInfoTitle}>App Information</ThemedText>
 
-                  <ThemedView style={styles.appInfoBox}>
-                      <ThemedText style={styles.appInfoTitle}>App Information</ThemedText>
+            <ThemedView style={styles.infoRow}>
+              <ThemedText style={styles.label}>Version:</ThemedText>
+              <ThemedText style={styles.value}>1.0.0</ThemedText>
+            </ThemedView>
 
-                      <ThemedView style={styles.infoRow}>
-                          <ThemedText style={styles.label}>Version:</ThemedText>
-                          <ThemedText style={styles.value}>1.0.0</ThemedText>
-                      </ThemedView>
+            <ThemedView style={styles.infoRow}>
+              <ThemedText style={styles.label}>Last Updated:</ThemedText>
+              <ThemedText style={styles.value}>06 Aug 2025</ThemedText>
+            </ThemedView>
 
-                      <ThemedView style={styles.infoRow}>
-                          <ThemedText style={styles.label}>Last Updated:</ThemedText>
-                          <ThemedText style={styles.value}>06 Aug 2025</ThemedText>
-                      </ThemedView>
+            <ThemedView style={styles.infoRow}>
+              <ThemedText style={styles.label}>Total Entries:</ThemedText>
+              <ThemedText style={styles.value}>2</ThemedText>
+            </ThemedView>
 
-                      <ThemedView style={styles.infoRow}>
-                          <ThemedText style={styles.label}>Total Entries:</ThemedText>
-                          <ThemedText style={styles.value}>2</ThemedText>
-                      </ThemedView>
-
-                      <ThemedView style={styles.infoRow}>
-                          <ThemedText style={styles.label}>Active Vans:</ThemedText>
-                          <ThemedText style={styles.value}>2</ThemedText>
-                      </ThemedView>
-                  </ThemedView>
+            <ThemedView style={styles.infoRow}>
+              <ThemedText style={styles.label}>Active Vans:</ThemedText>
+              <ThemedText style={styles.value}>2</ThemedText>
+            </ThemedView>
+          </ThemedView>
 
           <ThemedView style={{ marginHorizontal: 25, marginTop: 10 }}>
             <Button
               title="Log Out"
-              onPress={handleLogout} 
+              onPress={handleLogout}
             />
           </ThemedView>
-                
-              </ScrollView>
-                 
-          </ThemedSafeArea>
-      </LinearGradient>
+
+        </ScrollView>
+
+      </ThemedSafeArea>
+    </LinearGradient>
   );
 }
 
@@ -280,11 +286,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "transparent",
   },
-    titleContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 10,
-    },
+  titleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
   title: {
     fontSize: 20,
     fontWeight: "bold",
@@ -324,15 +330,13 @@ const styles = StyleSheet.create({
     gap: 16,
     borderWidth: 1,
     borderColor: '#e0e0e0',
-    marginHorizontal:15,
+    marginHorizontal: 15,
     marginVertical: 15,
-    borderRadius:10
-    
+    borderRadius: 10
   },
   welcomeText: {
     fontSize: 24,
     fontWeight: 'bold',
-    // textAlign: 'center',
     marginBottom: 16,
     color: '#fff',
   },
@@ -340,7 +344,6 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
     backgroundColor: '#323436ff',
-    
   },
   inputRow: {
     flexDirection: 'row',
@@ -352,70 +355,70 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   vanInfoBox: {
-  padding: 16,
-  borderRadius: 12,
-  marginTop: 24,
-  marginHorizontal:15,
-  borderWidth: 1,
-  borderColor: '#e0e0e0',
-},
-vanInfoHeader: {
-  flexDirection: "row",
-  alignItems: "center",
-  marginBottom: 12,
-},
-vanInfoTitle: {
-  fontSize: 18,
-  fontWeight: "600",},
-vanCard: {
-  borderRadius: 15,
-  padding: 12,
-  flexDirection: "row",
-  justifyContent: "space-between",
-  alignItems: "center",
-  marginBottom: 10,
-  backgroundColor: "#323436ff",
-},
-vanName: {
-  fontSize: 17,
-  fontWeight: "600",
-},
-driverName: {
-  fontSize: 14,
-  color: "#ddd",
-  marginTop: 2,
-},
-stock: {
-  fontSize: 16,
-  fontWeight: "bold",
-  color: "#007AFF",
-},
-stockLabel: {
-  fontSize: 12,
-  color: "#ddd",
-},
-appInfoBox: {
-  padding: 16,
-  borderRadius: 12,
-  marginTop: 24,
-  marginHorizontal:15,
-  borderWidth: 1,
-  borderColor: '#e0e0e0',
-},
-appInfoTitle: {
-  fontSize: 16,
-  fontWeight: "600",
-  color: "#333",
-  marginBottom: 12,
-},
-infoRow: {
-  flexDirection: "row",
-  marginBottom: 6,
-},
-label: {
-  fontWeight: "bold",
-  width: 130,
-},
-value:{}
-
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 24,
+    marginHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  vanInfoHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  vanInfoTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+  },
+  vanCard: {
+    borderRadius: 15,
+    padding: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+    backgroundColor: "#323436ff",
+  },
+  vanName: {
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  driverName: {
+    fontSize: 14,
+    color: "#ddd",
+    marginTop: 2,
+  },
+  stock: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#007AFF",
+  },
+  stockLabel: {
+    fontSize: 12,
+    color: "#ddd",
+  },
+  appInfoBox: {
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 24,
+    marginHorizontal: 15,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  appInfoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 12,
+  },
+  infoRow: {
+    flexDirection: "row",
+    marginBottom: 6,
+  },
+  label: {
+    fontWeight: "bold",
+    width: 130,
+  },
+  value: {}
 });

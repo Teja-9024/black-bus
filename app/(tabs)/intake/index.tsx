@@ -4,12 +4,12 @@ import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -26,6 +26,7 @@ import FuelRateService from "@/services/FuelRateService";
 import IntakeService from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScrollView } from "react-native-gesture-handler";
 
 // 🔸 Define form type
@@ -52,9 +53,16 @@ export default function IntakeScreen() {
     handleSubmit,
     watch,
     setValue,
+    reset,          // for Save-only reset
+    getValues,      // to preserve van/worker/pump on reset
     formState: { errors },
   } = useForm<TFormData>({
     defaultValues: {
+      vanName: "",
+      workerName: "",
+      pumpName: "Sonu Petroleum Service",
+      litres: "",
+      amount: "",
       intakeTime: new Date(),
     },
   });
@@ -71,158 +79,152 @@ export default function IntakeScreen() {
   const [hasEditedLitres, setHasEditedLitres] = useState(false);
   const [hasEditedAmount, setHasEditedAmount] = useState(false);
 
+  // 🔒 Global loading semaphore + in-flight guards
+  const loadingCountRef = useRef(0);
+  const inFlight = useRef({ fetch: false, save: false });
+
+  const showBlocking = () => {
+    if (loadingCountRef.current === 0) loadingDialog.show();
+    loadingCountRef.current += 1;
+  };
+  const hideBlocking = () => {
+    loadingCountRef.current = Math.max(loadingCountRef.current - 1, 0);
+    if (loadingCountRef.current === 0) loadingDialog.hide();
+  };
+
   const setVal = (name: keyof TFormData, value: string) =>
     setValue(name, value, { shouldDirty: true, shouldValidate: false });
 
-  const litres = watch("litres") || "0.00";
-  const amount = watch("amount") || "0.00";
+  const litres = watch("litres") || "";
+  const amount = watch("amount") || "";
 
   const calculateFromLitres = (val: string) => {
     const parsed = parseFloat(val) || 0;
-    return (parsed * rate).toFixed(2);
+    return rate > 0 ? (parsed * rate).toFixed(2) : "0.00";
   };
 
   const calculateFromAmount = (val: string) => {
     const parsed = parseFloat(val) || 0;
-    if (!rate || rate <= 0) return "0.00";
-    return (parsed / rate).toFixed(2);
+    return rate > 0 ? (parsed / rate).toFixed(2) : "0.00";
   };
 
-  useEffect(() => {
-    // Load role/name fallback
-    (async () => {
-      try {
-        const stored = await AsyncStorage.getItem('userData');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.role) setIsWorker(parsed.role === 'worker');
-          if (parsed?.name) {
-            setWorkerName(parsed.name);
-            setValue('workerName', parsed.name);
-          }
-          if (parsed?.id) setWorkerId(parsed.id);
-          return;
-        }
-      } catch {}
-      setIsWorker(user?.role === 'worker');
-      if (user?.name) {
-        setWorkerName(user.name);
-        setValue('workerName', user.name);
-      }
-      if (user?._id) setWorkerId(user._id);
-    })();
-  }, [user?.role, user?.name, setValue]);
+  // 🔁 Fetch latest data on screen focus; do NOT reset the form here.
+  // Uses blocking dialog with semaphore + in-flight guard to avoid stuck loader.
+  const fetchLatest = useCallback(async () => {
+    if (!accessToken) return;             // ✅ never show dialog if no token
 
-  useEffect(() => {
-    const init = async () => {
-      if (!accessToken) return;
-      try {
-        loadingDialog.show();
-        const [r, vans] = await Promise.all([
-          FuelRateService.getDieselRate(accessToken),
-          VanService.getVans(accessToken),
-        ]);
-        setRate(r || 0);
+    if (inFlight.current.fetch) return;   // prevent duplicate focus calls
+    inFlight.current.fetch = true;
 
-        // Prefill amount with rate only if empty; do not mark as edited
-        if (typeof r === 'number' && r > 0) {
-          const currentAmount = watch('amount');
-          if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
-            setValue("amount", String(r), { shouldDirty: false, shouldTouch: false });
-            setHasEditedAmount(false);
-          }
-        }
-
-        // Build van options, filter for worker role and preselect
-        let availableVans: Van[] = vans || [];
-        if (isWorker) {
-          const idToMatch = workerId || user?._id || '';
-          availableVans = availableVans.filter((v) => (v.assignedWorker || '') === idToMatch);
-          // Fallback: if backend doesn't include assignedWorker, try vanId equality
-          if (availableVans.length === 0) {
-            try {
-              const stored = await AsyncStorage.getItem('userData');
-              if (stored) {
-                const parsed = JSON.parse(stored);
-                const vanId = parsed?.vanId as string | undefined;
-                if (vanId) {
-                  availableVans = (vans || []).filter((v) => v._id === vanId);
-                }
-              }
-            } catch {}
-          }
-        }
-        const opts: VanOption[] = (availableVans || []).map((v: Van) => ({
-          vanName: `${v.vanNo} - ${v.name}`,
-          vanid: v.vanNo,
-        }));
-        setVanOptions(opts);
-        // Preselect first/only allowed van
-        if (opts.length > 0) {
-          setValue("vanName", opts[0].vanid as any, { shouldDirty: false, shouldTouch: false });
-        }
-      } catch (e) {
-        HandleApiError(e);
-      } finally {
-        loadingDialog.hide();
-      }
-    };
-    init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken, isWorker, workerId]);
-
-  // Load worker name from AsyncStorage (not from useAuth)
-  useEffect(() => {
-    const loadWorkerName = async () => {
-      try {
-        const stored = await AsyncStorage.getItem('userData');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed?.name) {
-            setWorkerName(parsed.name);
-            setValue('workerName', parsed.name);
-          }
-        }
-      } catch (_) {}
-    };
-    loadWorkerName();
-  }, [setValue]);
-
-  // When switching to Amount mode, if empty, prefill with current rate (not edited)
-  useEffect(() => {
-    if (inputType === 'amount' && rate > 0) {
-      const currentAmount = watch('amount');
-      if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
-        setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
-        setHasEditedAmount(false);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inputType, rate]);
-
-  const onSubmit = async (values: TFormData) => {
-    if (!accessToken) return;
+    showBlocking();
     try {
-      loadingDialog.show();
-      const vanNo = values.vanName; // valueField is vanid
-      const litresNum = parseFloat(values.litres || "0");
-      const amountNum = parseFloat(values.amount || "0");
-      const payload = {
-        vanNo,
-        pumpName: values.pumpName || "Sonu Petroleum Service",
-        litres: litresNum,
-        amount: amountNum,
-        dateTime: (values.intakeTime || new Date()).toISOString(),
-      };
-      const res = await IntakeService.addIntake(accessToken, payload);
-      console.log("addIntakeres", res);
-      showToast('success', 'Intake saved successfully');
+      // identity: AsyncStorage first, then useAuth
+      let role = user?.role;
+      let name = user?.name || "";
+      let uid = user?._id || "";
+      const stored = await AsyncStorage.getItem("userData");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        role = parsed?.role ?? role;
+        name = parsed?.name ?? name;
+        uid = parsed?.id ?? uid;
+      }
+
+      setIsWorker(role === "worker");
+      setWorkerName(name || "");
+      setWorkerId(uid || "");
+
+      const [r, vans] = await Promise.all([
+        FuelRateService.getDieselRate(accessToken),
+        VanService.getVans(accessToken),
+      ]);
+      setRate(r || 0);
+
+      let availableVans: Van[] = vans || [];
+      if (role === "worker" && uid) {
+        availableVans = availableVans.filter((v) => (v.assignedWorker || "") === uid);
+        // Fallback if API doesn't include assignedWorker
+        if (availableVans.length === 0 && stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            const vanId = parsed?.vanId as string | undefined;
+            if (vanId) availableVans = (vans || []).filter((v) => v._id === vanId);
+          } catch {}
+        }
+      }
+
+      const opts: VanOption[] = (availableVans || []).map((v: Van) => ({
+        vanName: `${v.vanNo} - ${v.name}`,
+        vanid: v.vanNo,
+      }));
+      setVanOptions(opts);
+
+      // Preserve user selection; if none, preselect first available only once
+      const currentVan = getValues("vanName");
+      if ((!currentVan || currentVan.trim() === "") && opts.length > 0) {
+        setValue("vanName", opts[0].vanid as any, { shouldDirty: false, shouldTouch: false });
+      }
+
+      // Prefill workerName if empty
+      const currentWorker = getValues("workerName");
+      if (!currentWorker) {
+        setValue("workerName", name || "", { shouldDirty: false, shouldTouch: false });
+      }
     } catch (e) {
       HandleApiError(e);
     } finally {
-      loadingDialog.hide();
+      inFlight.current.fetch = false;
+      hideBlocking();                     // ✅ always paired with showBlocking
     }
-  };
+  }, [accessToken, user?.role, user?.name, user?._id, getValues, setValue]);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchLatest(); // only fetch latest data; don't reset fields
+    }, [fetchLatest])
+  );
+
+  const onSubmit = useCallback(async (values: TFormData) => {
+    if (!accessToken) return;
+
+    if (inFlight.current.save) return;   // avoid double-tap submits
+    inFlight.current.save = true;
+
+    showBlocking();
+    try {
+      const payload = {
+        vanNo: values.vanName,
+        pumpName: values.pumpName || "Sonu Petroleum Service",
+        litres: parseFloat(values.litres || "0"),
+        amount: parseFloat(values.amount || "0"),
+        dateTime: (values.intakeTime || new Date()).toISOString(),
+      };
+      await IntakeService.addIntake(accessToken, payload);
+      showToast('success', 'Intake saved successfully');
+
+      // ✅ Reset only user-input fields after save; keep selection/details
+      const { vanName, workerName, pumpName } = getValues();
+      reset({
+        vanName,                     // keep
+        workerName,                  // keep
+        pumpName: pumpName || "Sonu Petroleum Service",
+        litres: "",                  // clear
+        amount: "",                  // clear
+        intakeTime: new Date(),      // reset to now
+      });
+
+      // reset guards and toggle
+      setEditing(null);
+      setHasEditedLitres(false);
+      setHasEditedAmount(false);
+      setInputType('litres');
+    } catch (e) {
+      HandleApiError(e);
+    } finally {
+      inFlight.current.save = false;
+      hideBlocking();                 // ✅ paired with showBlocking
+    }
+  }, [accessToken, reset, getValues]);
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -235,7 +237,7 @@ export default function IntakeScreen() {
             </View>
           }
           rightContent1={
-            isWorker ? null : (
+            (user?.role === "worker") ? null : (
               <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
                 <SimpleLineIcons name="bell" size={24} color={colors.text} />
                 {unread > 0 && (
@@ -288,10 +290,10 @@ export default function IntakeScreen() {
             <Controller
               control={control}
               name="pumpName"
-              render={() => (
+              render={({ field: { value } }) => (
                 <CustomTextInput
                   label="Pump Name"
-                  value={"Sonu Petroleum Service"}
+                  value={value}
                   editable={false}
                   bordered
                 />
@@ -321,12 +323,6 @@ export default function IntakeScreen() {
                   if (hasEditedLitres) {
                     const litNow = watch('litres') || '0';
                     setVal('amount', calculateFromLitres(litNow));
-                  } else if (rate > 0) {
-                    const currentAmount = watch('amount');
-                    if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
-                      setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
-                      setHasEditedAmount(false);
-                    }
                   }
                 }}
               >
@@ -367,7 +363,7 @@ export default function IntakeScreen() {
                   <CustomTextInput
                     label="Amount (₹)"
                     value={value}
-                    placeholder={`Enter amount in ₹ (Rate: ₹${rate})`}
+                    placeholder={rate > 0 ? `Rate: ₹${rate}/L` : "Enter amount in ₹"}
                     keyboardType="decimal-pad"
                     bordered
                     onFocus={() => setEditing('amount')}
@@ -400,14 +396,14 @@ export default function IntakeScreen() {
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Litres</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  {litres}L
+                  {litres || "0.00"}L
                 </ThemedText>
               </ThemedView>
 
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Amount</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{amount}
+                  ₹{amount || "0.00"}
                 </ThemedText>
               </ThemedView>
 
@@ -435,10 +431,25 @@ export default function IntakeScreen() {
 
           <ThemedView style={styles.buttonsContainer}>
             <View style={{ flex: 1, marginRight: 10 }}>
-              <Button title="Save" onPress={handleSubmit(onSubmit)} style={styles.saveButton}/>
+              <Button title="Save" onPress={handleSubmit(onSubmit)} style={styles.saveButton} />
             </View>
             <View style={{ flex: 1 }}>
-              <Button title="Cancel" onPress={() => console.log('')} />
+              <Button title="Cancel" onPress={() => {
+                // Optional: clear user inputs without touching selections
+                const { vanName, workerName, pumpName } = getValues();
+                reset({
+                  vanName,
+                  workerName,
+                  pumpName: pumpName || "Sonu Petroleum Service",
+                  litres: "",
+                  amount: "",
+                  intakeTime: new Date(),
+                });
+                setEditing(null);
+                setHasEditedLitres(false);
+                setHasEditedAmount(false);
+                setInputType('litres');
+              }} />
             </View>
           </ThemedView>
         </ScrollView>
@@ -508,11 +519,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15, 
-    gap: 10, 
+    paddingHorizontal: 15,
+    gap: 10,
     marginTop: 10,
   },
-  saveButton:{
-    backgroundColor: "#FFC107", 
+  saveButton: {
+    backgroundColor: "#FFC107",
   }
 });
