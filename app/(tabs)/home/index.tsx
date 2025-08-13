@@ -166,8 +166,10 @@ export default function HomeScreen() {
         console.log("filteredVans",filteredVans)
         if (isWorker) {
           const idToMatch = workerId || user?._id || "";
+          console.log("idToMatch",idToMatch)
           filteredVans = filteredVans.filter((v) => (v.assignedWorker || "") === idToMatch);
         }
+        console.log("filteredVans1",filteredVans)
         setVans(filteredVans);
         setCurrentRate(rateRes || 0);
 
