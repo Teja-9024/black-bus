@@ -258,10 +258,13 @@ export default function SettingsScreen() {
                       </ThemedView>
                   </ThemedView>
 
-                <Button
-                  title="Log Out"
-                  onPress={handleLogout}
-                />
+          <ThemedView style={{ marginHorizontal: 25, marginTop: 10 }}>
+            <Button
+              title="Log Out"
+              onPress={handleLogout} 
+            />
+          </ThemedView>
+                
               </ScrollView>
                  
           </ThemedSafeArea>
