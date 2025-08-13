@@ -237,7 +237,7 @@ export default function IntakeScreen() {
             </View>
           }
           rightContent1={
-            (user?.role === "worker") ? null : (
+            isWorker ? null : (
               <TouchableOpacity onPress={() => router.push("/(notifications)")} style={styles.notificationIconContainer}>
                 <SimpleLineIcons name="bell" size={24} color={colors.text} />
                 {unread > 0 && (
