@@ -3,11 +3,10 @@ import RoleBadge from "@/components/RoleBadge";
 import ThemedSafeArea from "@/components/ThemedSafeArea";
 import { useAuth } from "@/context/AuthContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
-import { useSocket } from "@/context/SocketContext";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
-import { Redirect, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { Redirect, useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -26,17 +25,14 @@ import IntakeService, { IntakeItem } from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { ScrollView } from "react-native-gesture-handler";
+import { RefreshControl, ScrollView } from "react-native-gesture-handler";
 
 export default function HomeScreen() {
   const { colors } = useTheme();
   const { isAuthenticated, authLoading, user, accessToken, signOut } = useAuth();
   const { unread } = useNotificationsCtx();
-  const { socket } = useSocket();
   const router = useRouter();
 
-  // const [unreadChatIds, setUnreadChatIds] = useState<Set<string>>(new Set());
-  const [hasUnreadNotifications, setHasUnreadNotifications] = useState(false);
   const [currentRate, setCurrentRate] = useState<number>(0);
   const [totalIntake, setTotalIntake] = useState<number>(0);
   const [totalDelivered, setTotalDelivered] = useState<number>(0);
@@ -52,76 +48,9 @@ export default function HomeScreen() {
   const [isWorker, setIsWorker] = useState<boolean>(false);
   const [workerName, setWorkerName] = useState<string>("");
   const [workerId, setWorkerId] = useState<string>("");
+  const [refreshing, setRefreshing] = useState(false);
 
-  console.log("vans",vans)
 
-  // const fetchInitialUnreadChats = useCallback(async () => {
-  //   if (!accessToken) return;
-
-  //   try {
-  //     const res = await ChatService.getUserChats(accessToken, 1, 1000);
-  //     const chats: ChatPreviewResponse[] = res.chats || [];
-
-  //     const initialUnreadSet = new Set<string>();
-  //     chats.forEach(chat => {
-  //       if (chat.unreadCount > 0) {
-  //         initialUnreadSet.add(chat.id);
-  //       }
-  //     });
-  //     setUnreadChatIds(initialUnreadSet);
-  //   } catch (err) {
-  //     console.error("Error fetching initial unread chats:", err);
-  //   }
-  // }, [accessToken]);
-
-  // const fetchInitialUnreadNotificationCount = useCallback(async () => {
-  //   if (!accessToken) return;
-  //   try {
-  //     const res = await NotificationService.getUnreadNotificationCount(accessToken);
-  //     setHasUnreadNotifications(res.count > 0);
-  //   } catch (err) {
-  //     console.error("Error fetching initial unread notification count:", err);
-  //   }
-  // }, [accessToken]);
-
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     fetchInitialUnreadChats();
-  //     fetchInitialUnreadNotificationCount();
-  //   }
-  // }, [isAuthenticated, fetchInitialUnreadChats, fetchInitialUnreadNotificationCount]);
-
-  // useEffect(() => {
-  //   if (!socket || !user) return;
-
-  //   socket.emit("setUserId", user._id);
-
-  //   const handleChatPreviewUpdate = (chatPreview: ChatPreviewResponse) => {
-  //     setUnreadChatIds((prevIds) => {
-  //       const newIds = new Set(prevIds);
-  //       if (chatPreview.unreadCount > 0) {
-  //         newIds.add(chatPreview.id);
-  //       } else {
-  //         newIds.delete(chatPreview.id);
-  //       }
-  //       return newIds;
-  //     });
-  //   };
-
-  //   const handleUnreadNotificationCountUpdate = ({ count }: { count: number }) => {
-  //     setHasUnreadNotifications(count > 0);
-  //   };
-
-  //   socket.on("chatPreviewUpdate", handleChatPreviewUpdate);
-  //   socket.on("unreadNotificationCountUpdate", handleUnreadNotificationCountUpdate);
-
-  //   return () => {
-  //     socket.off("chatPreviewUpdate", handleChatPreviewUpdate);
-  //     socket.off("unreadNotificationCountUpdate", handleUnreadNotificationCountUpdate);
-  //   };
-  // }, [socket, user]);
-
-  // Load userData fallback for role/name
   useEffect(() => {
     (async () => {
       try {
@@ -141,74 +70,148 @@ export default function HomeScreen() {
   }, [user?.role, user?.name]);
 
   // Ensure effect runs every render to preserve hook order
-  useEffect(() => {
+  // useEffect(() => {
+  //   if (!accessToken) return;
+
+  //   const isToday = (iso: string) => {
+  //     const d = new Date(iso);
+  //     const now = new Date();
+  //     return d.toDateString() === now.toDateString();
+  //   };
+
+  //   const fetchAll = async () => {
+  //     setVansLoading(true);
+  //     setVansError(null);
+  //     try {
+  //       const [vansRes, rateRes, intakesRes, deliveriesRes] = await Promise.all([
+  //         VanService.getVans(accessToken),
+  //         FuelRateService.getDieselRate(accessToken),
+  //         IntakeService.getIntakes(accessToken),
+  //         DeliveryService.getDeliveries(accessToken),
+  //       ]);
+  //       console.log("intakesRes", intakesRes);
+  //       // Filter vans for worker role (supports AsyncStorage fallback)
+  //       let filteredVans: Van[] = vansRes || [];
+  //       console.log("filteredVans",filteredVans)
+  //       if (isWorker) {
+  //         const idToMatch = workerId || user?._id || "";
+  //         console.log("idToMatch",idToMatch)
+  //         filteredVans = filteredVans.filter((v) => (v.assignedWorker || "") === idToMatch);
+  //       }
+  //       console.log("filteredVans1",filteredVans)
+  //       setVans(filteredVans);
+  //       setCurrentRate(rateRes || 0);
+
+  //       // Allowed van numbers for current user (all for owner, assigned for worker)
+  //       const allowedVanNos = new Set((filteredVans || []).map((v) => v.vanNo));
+
+  //       const todaysIntakes = (intakesRes || [])
+  //         .filter((i: IntakeItem) => isToday(i.dateTime))
+  //         .filter((i: IntakeItem) => allowedVanNos.size === 0 || allowedVanNos.has(i.vanNo));
+  //       const todaysDeliveries = (deliveriesRes || [])
+  //         .filter((d: DeliveryItem) => isToday(d.dateTime))
+  //         .filter((d: DeliveryItem) => allowedVanNos.size === 0 || allowedVanNos.has(d.vanNo));
+
+  //       const intakeLitres = todaysIntakes.reduce((sum, i) => sum + (i.litres || 0), 0);
+  //       const deliveredLitres = todaysDeliveries.reduce((sum, d) => sum + (d.litres || 0), 0);
+  //       setTotalIntake(intakeLitres);
+  //       setTotalDelivered(deliveredLitres);
+
+  //       const recentMapped = todaysDeliveries
+  //         .slice()
+  //         .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+  //         .slice(0, 5)
+  //         .map((d) => ({
+  //           _id: d._id,
+  //           customerName: d.customer,
+  //           deliveryTime: d.dateTime,
+  //           litres: d.litres,
+  //           amount: d.amount,
+  //         }));
+  //       setRecentDeliveries(recentMapped);
+  //     } catch (e: any) {
+  //       setVansError("Failed to load data");
+  //     } finally {
+  //       setVansLoading(false);
+  //     }
+  //   };
+
+  //   fetchAll();
+  // }, [accessToken, isWorker, workerId]);
+
+  const fetchAll = useCallback(async () => {
     if (!accessToken) return;
+    setVansLoading(true);
+    setVansError(null);
+    try {
+      const isToday = (iso: string) => {
+        const d = new Date(iso);
+        const now = new Date();
+        return d.toDateString() === now.toDateString();
+      };
 
-    const isToday = (iso: string) => {
-      const d = new Date(iso);
-      const now = new Date();
-      return d.toDateString() === now.toDateString();
-    };
+      const [vansRes, rateRes, intakesRes, deliveriesRes] = await Promise.all([
+        VanService.getVans(accessToken),
+        FuelRateService.getDieselRate(accessToken),
+        IntakeService.getIntakes(accessToken),
+        DeliveryService.getDeliveries(accessToken),
+      ]);
 
-    const fetchAll = async () => {
-      setVansLoading(true);
-      setVansError(null);
-      try {
-        const [vansRes, rateRes, intakesRes, deliveriesRes] = await Promise.all([
-          VanService.getVans(accessToken),
-          FuelRateService.getDieselRate(accessToken),
-          IntakeService.getIntakes(accessToken),
-          DeliveryService.getDeliveries(accessToken),
-        ]);
-        console.log("intakesRes", intakesRes);
-        // Filter vans for worker role (supports AsyncStorage fallback)
-        let filteredVans: Van[] = vansRes || [];
-        console.log("filteredVans",filteredVans)
-        if (isWorker) {
-          const idToMatch = workerId || user?._id || "";
-          console.log("idToMatch",idToMatch)
-          filteredVans = filteredVans.filter((v) => (v.assignedWorker || "") === idToMatch);
-        }
-        console.log("filteredVans1",filteredVans)
-        setVans(filteredVans);
-        setCurrentRate(rateRes || 0);
-
-        // Allowed van numbers for current user (all for owner, assigned for worker)
-        const allowedVanNos = new Set((filteredVans || []).map((v) => v.vanNo));
-
-        const todaysIntakes = (intakesRes || [])
-          .filter((i: IntakeItem) => isToday(i.dateTime))
-          .filter((i: IntakeItem) => allowedVanNos.size === 0 || allowedVanNos.has(i.vanNo));
-        const todaysDeliveries = (deliveriesRes || [])
-          .filter((d: DeliveryItem) => isToday(d.dateTime))
-          .filter((d: DeliveryItem) => allowedVanNos.size === 0 || allowedVanNos.has(d.vanNo));
-
-        const intakeLitres = todaysIntakes.reduce((sum, i) => sum + (i.litres || 0), 0);
-        const deliveredLitres = todaysDeliveries.reduce((sum, d) => sum + (d.litres || 0), 0);
-        setTotalIntake(intakeLitres);
-        setTotalDelivered(deliveredLitres);
-
-        const recentMapped = todaysDeliveries
-          .slice()
-          .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
-          .slice(0, 5)
-          .map((d) => ({
-            _id: d._id,
-            customerName: d.customer,
-            deliveryTime: d.dateTime,
-            litres: d.litres,
-            amount: d.amount,
-          }));
-        setRecentDeliveries(recentMapped);
-      } catch (e: any) {
-        setVansError("Failed to load data");
-      } finally {
-        setVansLoading(false);
+      let filteredVans: Van[] = vansRes || [];
+      if (isWorker) {
+        const idToMatch = workerId || user?._id || "";
+        filteredVans = filteredVans.filter((v) => (v.assignedWorker || "") === idToMatch);
       }
-    };
+      setVans(filteredVans);
+      setCurrentRate(rateRes || 0);
 
+      const allowedVanNos = new Set((filteredVans || []).map((v) => v.vanNo));
+      const todaysIntakes = (intakesRes || [])
+        .filter((i: IntakeItem) => isToday(i.dateTime))
+        .filter((i: IntakeItem) => allowedVanNos.size === 0 || allowedVanNos.has(i.vanNo));
+      const todaysDeliveries = (deliveriesRes || [])
+        .filter((d: DeliveryItem) => isToday(d.dateTime))
+        .filter((d: DeliveryItem) => allowedVanNos.size === 0 || allowedVanNos.has(d.vanNo));
+
+      const intakeLitres = todaysIntakes.reduce((sum, i) => sum + (i.litres || 0), 0);
+      const deliveredLitres = todaysDeliveries.reduce((sum, d) => sum + (d.litres || 0), 0);
+      setTotalIntake(intakeLitres);
+      setTotalDelivered(deliveredLitres);
+
+      const recentMapped = todaysDeliveries
+        .slice()
+        .sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime())
+        .slice(0, 5)
+        .map((d) => ({
+          _id: d._id,
+          customerName: d.customer,
+          deliveryTime: d.dateTime,
+          litres: d.litres,
+          amount: d.amount,
+        }));
+      setRecentDeliveries(recentMapped);
+    } catch (e) {
+      setVansError("Failed to load data");
+    } finally {
+      setVansLoading(false);
+      setRefreshing(false);
+    }
+  }, [accessToken, isWorker, workerId, user?._id]);
+
+  useEffect(() => {
     fetchAll();
-  }, [accessToken, isWorker, workerId]);
+  }, [fetchAll]); 
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAll();
+    }, [fetchAll])
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAll();
+  }, [fetchAll]);
 
   if (authLoading) return <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="large" />;
 
@@ -237,7 +240,17 @@ export default function HomeScreen() {
           }
           showBottomBorder={true}
         />
-        <ScrollView>
+        <ScrollView
+          refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={colors.text}         // iOS spinner color
+                colors={[colors.primary || "#000"]} // Android spinner color(s)
+                progressViewOffset={64}          // moves spinner below header
+              />
+            }
+          >
           <View style={styles.vansContainer}>
             {vansLoading && (
               <ActivityIndicator style={styles.activityIndicator} color={colors.primary} size="small" />
