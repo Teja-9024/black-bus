@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -18,10 +18,11 @@ import DateTimePickerComponent from "@/components/DateTimePickerComponent";
 import CustomDropdown from "@/components/Dropdown";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { HandleApiError, showToast } from "@/constants/Functions";
+import { HandleApiError } from "@/constants/Functions";
 import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
+import { useSuccessDialog } from "@/context/SuccessContext";
 import FuelRateService from "@/services/FuelRateService";
 import IntakeService from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
@@ -47,6 +48,7 @@ export default function IntakeScreen() {
   const { accessToken, user } = useAuth();
   const { unread } = useNotificationsCtx();
   const loadingDialog = useLoadingDialog();
+  const successDialog = useSuccessDialog();
 
   const {
     control,
@@ -200,7 +202,7 @@ export default function IntakeScreen() {
         dateTime: (values.intakeTime || new Date()).toISOString(),
       };
       await IntakeService.addIntake(accessToken, payload);
-      showToast('success', 'Intake saved successfully');
+      successDialog.flash();
 
       // ✅ Reset only user-input fields after save; keep selection/details
       const { vanName, workerName, pumpName } = getValues();

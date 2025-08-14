@@ -5,10 +5,10 @@ import { SimpleLineIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View
+    ScrollView,
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -18,6 +18,7 @@ import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
+import { useSuccessDialog } from "@/context/SuccessContext";
 import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const [workerId, setWorkerId] = useState<string>("");
   const { unread } = useNotificationsCtx();
   const { show, hide } = useLoadingDialog();
+  const successDialog = useSuccessDialog();
 
   const [vans, setVans] = useState<Van[]>([]);
   const [vansLoading, setVansLoading] = useState<boolean>(false);
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
       const saved = await FuelRateService.setDieselRate(accessToken, parsed);
       setRate(String(saved));
       setNewRate('');
-      Toast.show({ type: 'success', text1: 'Diesel rate updated' });
+      successDialog.flash();
     } catch (e:any) {
       Toast.show({ type: 'error', text1: 'Failed to update rate' });
     } finally {

@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import { LoadingDialogProvider } from "@/context/LoadingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { SocketProvider } from "@/context/SocketContext";
+import { SuccessDialogProvider } from "@/context/SuccessContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 import { SyncProvider } from "@/sync/SyncProvider";
 import { useFonts } from "expo-font";
@@ -67,16 +68,18 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.container}>
         <ThemeProvider>
           <LoadingDialogProvider>
-            <AuthProvider>
-              <SyncProvider>
-                {/* Wrap RootLayoutContent with SocketProvider */}
-                <SocketProvider>
-                  <NotificationProvider>
-                    <RootLayoutContent />
-                  </NotificationProvider>
-                </SocketProvider>
-              </SyncProvider>
-            </AuthProvider>
+            <SuccessDialogProvider>
+              <AuthProvider>
+                <SyncProvider>
+                  {/* Wrap RootLayoutContent with SocketProvider */}
+                  <SocketProvider>
+                    <NotificationProvider>
+                      <RootLayoutContent />
+                    </NotificationProvider>
+                  </SocketProvider>
+                </SyncProvider>
+              </AuthProvider>
+            </SuccessDialogProvider>
           </LoadingDialogProvider>
         </ThemeProvider>
       </GestureHandlerRootView>
