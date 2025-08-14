@@ -208,7 +208,7 @@ export default function SettingsScreen() {
                   />
                 </ThemedView>
 
-                <ThemedView style={{ flex: 0.3, marginTop: 26 }}>
+                <ThemedView style={{ flex: 0.3, marginTop: 29 }}>
                   <Button title="Update" onPress={handleRateUpdate} style={styles.button} />
                 </ThemedView>
               </ThemedView>
@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#FFC107',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   vanInfoBox: {
     padding: 16,

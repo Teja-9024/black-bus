@@ -41,16 +41,16 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
             >
               Sonu Petroleum Service
             </ThemedText>
-            {/* <ThemedText
+            <ThemedText
               type="default"
               style={styles.tagline}
             >
-              Skip the red. Ride the black.
-            </ThemedText> */}
+              Manage your fuel intake and deliveries with ease and accuracy.
+            </ThemedText>
           </ThemedView>
 
           <LottieView
-            source={require("../assets/animations/busLoader.json")}
+            source={require("../assets/animations/petrolFilling.json")}
             autoPlay
             loop
             style={styles.animation}
@@ -58,7 +58,7 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
 
           <ThemedView style={styles.joinButton}>
             <Button
-              title="Book"
+              title="Get Started"
               onPress={() => router.push("/(auth)/login")}
             />
           </ThemedView>

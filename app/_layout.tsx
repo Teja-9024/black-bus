@@ -5,6 +5,7 @@ import { LoadingDialogProvider } from "@/context/LoadingContext";
 import { NotificationProvider } from "@/context/NotificationContext";
 import { SocketProvider } from "@/context/SocketContext";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
+import { SyncProvider } from "@/sync/SyncProvider";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -67,12 +68,14 @@ export default function RootLayout() {
         <ThemeProvider>
           <LoadingDialogProvider>
             <AuthProvider>
-              {/* Wrap RootLayoutContent with SocketProvider */}
-              <SocketProvider>
-                <NotificationProvider>
-                   <RootLayoutContent />
-                </NotificationProvider>
-              </SocketProvider>
+              <SyncProvider>
+                {/* Wrap RootLayoutContent with SocketProvider */}
+                <SocketProvider>
+                  <NotificationProvider>
+                    <RootLayoutContent />
+                  </NotificationProvider>
+                </SocketProvider>
+              </SyncProvider>
             </AuthProvider>
           </LoadingDialogProvider>
         </ThemeProvider>

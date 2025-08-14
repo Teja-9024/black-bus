@@ -1,4 +1,5 @@
 // services/VanService.ts
+import { VansRepo } from "@/db/repositories";
 import { _get } from "../configs/api-methods.config";
 
 export interface Van {
@@ -22,10 +23,18 @@ class VanService {
   static async getVans(token: string): Promise<Van[]> {
     try {
       const response = await _get<Van[]>("vans/vans", token);
+      // cache locally for offline
+      try { await VansRepo.upsertMany(response as any); } catch {}
       return response;
     } catch (error) {
-      console.error("Error while fetching vans: ", error);
-      throw error;
+      // offline: return cached
+      try {
+        const local = await VansRepo.all();
+        return (local || []) as Van[];
+      } catch (e) {
+        console.error("Error while fetching vans: ", error);
+        throw error;
+      }
     }
   }
 }

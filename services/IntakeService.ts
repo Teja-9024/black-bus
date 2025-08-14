@@ -1,4 +1,7 @@
-import { _get, _post } from "@/configs/api-methods.config";
+import { _get } from "@/configs/api-methods.config";
+import { offlinePost } from "@/configs/axios-offline";
+import { IntakesRepo } from "@/db/repositories";
+import NetInfo from '@react-native-community/netinfo';
 
 export interface IntakeItem {
   _id: string;
@@ -16,10 +19,28 @@ export interface IntakeItem {
 
 class IntakeService {
   static async getIntakes(token: string): Promise<IntakeItem[]> {
-    const res = await _get<any>("intakes/get-intake", token);
-    if (Array.isArray(res)) return res as IntakeItem[];
-    if (Array.isArray(res?.data)) return res.data as IntakeItem[];
-    return [];
+    try {
+      const res = await _get<any>("intakes/get-intake", token);
+      if (Array.isArray(res)) return res as IntakeItem[];
+      if (Array.isArray(res?.data)) return res.data as IntakeItem[];
+      return [];
+    } catch (e) {
+      const local = await IntakesRepo.all();
+      const mapped: IntakeItem[] = local.map((r) => ({
+        _id: String(r.server_id ?? r.local_id),
+        van: { _id: r.vanNo, vanNo: r.vanNo, name: r.vanNo },
+        vanNo: r.vanNo,
+        worker: { _id: '', email: '', name: r.workerName || '' },
+        workerName: r.workerName || '',
+        pumpName: r.pumpName,
+        litres: r.litres,
+        amount: r.amount,
+        dateTime: r.dateTime,
+        timestamp: r.updatedAt || r.createdAt || r.dateTime,
+        __v: 0,
+      }));
+      return mapped;
+    }
   }
 
   static async addIntake(
@@ -32,7 +53,40 @@ class IntakeService {
       dateTime: string;
     }
   ): Promise<any> {
-    return _post<any>("intakes/add-intake", payload, token);
+    const headers: any = {};
+    headers.Authorization = token ? `Bearer ${token}` : '';
+
+    const state = await NetInfo.fetch();
+    const isOnline = Boolean(state.isConnected && state.isInternetReachable);
+    console.log("isOnlinein",isOnline)
+    if (!isOnline) {
+      await IntakesRepo.insertLocalPending({
+        vanNo: payload.vanNo,
+        pumpName: payload.pumpName,
+        litres: payload.litres,
+        amount: payload.amount,
+        dateTime: payload.dateTime,
+      });
+      await (await import('@/db/repositories')).OutboxRepo.enqueue('POST', 'intakes/add-intake', payload, headers);
+      return { offline: true };
+    }
+
+    const res = await offlinePost<any>("intakes/add-intake", payload, headers);
+    try {
+      if (res && (res._id || res.data?._id)) {
+        const serverId = res._id || res.data._id;
+        await IntakesRepo.insertLocalPending({
+          server_id: serverId,
+          vanNo: payload.vanNo,
+          pumpName: payload.pumpName,
+          litres: payload.litres,
+          amount: payload.amount,
+          dateTime: payload.dateTime,
+          sync_status: 'synced',
+        } as any);
+      }
+    } catch {}
+    return res;
   }
 }
 
