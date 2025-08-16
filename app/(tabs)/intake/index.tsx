@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -90,6 +90,10 @@ export default function IntakeScreen() {
   const [workerId, setWorkerId] = useState<string>("");
   const [vanMetaById, setVanMetaById] = useState<Record<string, { workerName?: string }>>({});
 
+  // Separate state for litres and rate to prevent mixing
+  const [litresValue, setLitresValue] = useState<string>("");
+  const [rateValue, setRateValue] = useState<string>("");
+
   // guards to avoid ping-pong + unwanted conversions
   const [editing, setEditing] = useState<'litres' | 'amount' | null>(null);
   const [hasEditedLitres, setHasEditedLitres] = useState(false);
@@ -111,17 +115,20 @@ export default function IntakeScreen() {
   const setVal = (name: keyof TFormData, value: string) =>
     setValue(name, value, { shouldDirty: true, shouldValidate: false });
 
-  const litres = watch("litres") || "";
-  const amount = watch("amount") || "";
+  // Use separate state values instead of form values for display
+  const litres = litresValue || "";
+  const amount = rateValue || "";
 
-  const calculateFromLitres = (val: string) => {
-    const parsed = parseFloat(val) || 0;
-    return rate > 0 ? (parsed * rate).toFixed(2) : "0.00";
+  // Calculate total amount based on litres × rate
+  const calculateTotalAmount = (litresVal: string, rateVal: number) => {
+    const parsed = parseFloat(litresVal) || 0;
+    return rateVal > 0 ? (parsed * rateVal).toFixed(2) : "0.00";
   };
 
-  const calculateFromAmount = (val: string) => {
-    const parsed = parseFloat(val) || 0;
-    return rate > 0 ? (parsed / rate).toFixed(2) : "0.00";
+  // Calculate litres based on total amount ÷ rate
+  const calculateLitresFromAmount = (amountVal: string, rateVal: number) => {
+    const parsed = parseFloat(amountVal) || 0;
+    return rateVal > 0 ? (parsed / rateVal).toFixed(2) : "0.00";
   };
 
   // 🔁 Fetch latest data on screen focus; do NOT reset the form here.
@@ -241,6 +248,18 @@ export default function IntakeScreen() {
     }
   }, [vanNameSelected, isWorker, vanMetaById, setValue]);
 
+  // Auto-prefill amount with current rate when switching to Amount tab
+  useEffect(() => {
+    if (inputType === 'amount' && rate > 0) {
+      if (!rateValue || rateValue.trim() === "" || rateValue === "0.00") {
+        setRateValue(String(rate));
+        setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
+        setHasEditedAmount(false);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputType, rate]);
+
   const onSubmit = useCallback(async (values: TFormData) => {
     if (!accessToken) return;
     if (inFlight.current.save) return;   // avoid double-tap submits
@@ -272,6 +291,10 @@ export default function IntakeScreen() {
         amount: "",                  // clear
         intakeTime: new Date(),      // reset to now
       });
+
+      // Reset separate state values
+      setLitresValue("");
+      setRateValue("");
 
       // Owner: re-sync worker name from currently selected van
       if (!isWorker) {
@@ -408,10 +431,6 @@ export default function IntakeScreen() {
                 style={[styles.toggleButton, inputType === 'litres' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('litres');
-                  if (hasEditedAmount) {
-                    const amtNow = watch('amount') || '0';
-                    setVal('litres', calculateFromAmount(amtNow));
-                  }
                 }}
               >
                 <ThemedText style={[styles.toggleText, { color: inputType === 'litres' ? '#fff' : colors.text }]}>Enter Litres</ThemedText>
@@ -420,13 +439,15 @@ export default function IntakeScreen() {
                 style={[styles.toggleButton, inputType === 'amount' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('amount');
-                  if (hasEditedLitres) {
-                    const litNow = watch('litres') || '0';
-                    setVal('amount', calculateFromLitres(litNow));
+                  // When switching to amount, show default rate if rate is empty
+                  if (!rateValue || rateValue.trim() === "" || rateValue === "0.00") {
+                    setRateValue(String(rate));
+                    setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
+                    setHasEditedAmount(false);
                   }
                 }}
               >
-                <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Amount (₹)</ThemedText>
+                <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Rate (₹/L)</ThemedText>
               </TouchableOpacity>
             </View>
 
@@ -437,7 +458,7 @@ export default function IntakeScreen() {
                 render={({ field: { value } }) => (
                   <CustomTextInput
                     label="Litres Received *"
-                    value={value}
+                    value={litresValue}
                     placeholder="Enter litres received"
                     keyboardType="decimal-pad"
                     bordered
@@ -445,35 +466,30 @@ export default function IntakeScreen() {
                     onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
                       setHasEditedLitres(true);
+                      setLitresValue(text);
                       setVal('litres', text);
-                      if (editing !== 'amount') {
-                        setVal('amount', calculateFromLitres(text));
-                      }
                     }}
                   />
                 )}
               />
             ) : (
-              // Amount input
+              // Rate input (amount field is used for rate per liter)
               <Controller
                 control={control}
                 name="amount"
                 render={({ field: { value } }) => (
                   <CustomTextInput
-                    label="Amount (₹)"
-                    value={value}
-                    placeholder={rate > 0 ? `Rate: ₹${rate}/L` : "Enter amount in ₹"}
+                    label="Rate per Liter (₹/L)"
+                    value={rateValue}
+                    placeholder={rate > 0 ? `Default Rate: ₹${rate}/L` : "Enter rate per liter"}
                     keyboardType="decimal-pad"
                     bordered
                     onFocus={() => setEditing('amount')}
                     onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
                       setHasEditedAmount(true);
+                      setRateValue(text);
                       setVal('amount', text);
-                      // only compute litres when the user is editing amount
-                      if (editing !== 'litres') {
-                        setVal('litres', calculateFromAmount(text));
-                      }
                     }}
                   />
                 )}
@@ -495,21 +511,21 @@ export default function IntakeScreen() {
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Litres</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  {litres || "0.00"}L
-                </ThemedText>
-              </ThemedView>
-
-              <ThemedView style={{ alignItems: 'center' }}>
-                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Amount</ThemedText>
-                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{amount || "0.00"}
+                  {litresValue || "0.00"}L
                 </ThemedText>
               </ThemedView>
 
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Rate</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{rate}/L
+                  ₹{rateValue || rate}/L
+                </ThemedText>
+              </ThemedView>
+
+              <ThemedView style={{ alignItems: 'center' }}>
+                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Total Amount</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || rate)}
                 </ThemedText>
               </ThemedView>
             </ThemedView>
@@ -545,6 +561,9 @@ export default function IntakeScreen() {
                   amount: "",
                   intakeTime: new Date(),
                 });
+                // Reset separate state values
+                setLitresValue("");
+                setRateValue("");
                 // Owner: re-sync worker name from current van after cancel
                 if (!isWorker) {
                   const vNow = getValues("vanName");

@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -92,6 +92,10 @@ export default function DeliveryScreen() {
   // Owner ke liye: van -> workerName mapping
   const [vanMetaById, setVanMetaById] = useState<Record<string, { workerName?: string }>>({});
 
+  // Separate state for litres and rate to prevent mixing
+  const [litresValue, setLitresValue] = useState<string>("");
+  const [rateValue, setRateValue] = useState<string>("");
+
   // guards to avoid ping-pong + unwanted conversions
   const [editing, setEditing] = useState<'litres' | 'amount' | null>(null);
   const [hasEditedLitres, setHasEditedLitres] = useState(false);
@@ -113,18 +117,20 @@ export default function DeliveryScreen() {
   const setVal = (name: keyof TFormData, value: string) =>
     setValue(name, value, { shouldDirty: true, shouldValidate: false });
 
-  const litres = watch("litres") || "0.00";
-  const amount = watch("amount") || "0.00";
+  // Use separate state values instead of form values for display
+  const litres = litresValue || "";
+  const amount = rateValue || "";
 
-  const calculateFromLitres = (val: string) => {
-    const parsed = parseFloat(val) || 0;
-    return (parsed * rate).toFixed(2);
+  // Calculate total amount based on litres × rate
+  const calculateTotalAmount = (litresVal: string, rateVal: number) => {
+    const parsed = parseFloat(litresVal) || 0;
+    return rateVal > 0 ? (parsed * rateVal).toFixed(2) : "0.00";
   };
 
-  const calculateFromAmount = (val: string) => {
-    const parsed = parseFloat(val) || 0;
-    if (!rate || rate <= 0) return "0.00";
-    return (parsed / rate).toFixed(2);
+  // Calculate litres based on total amount ÷ rate
+  const calculateLitresFromAmount = (amountVal: string, rateVal: number) => {
+    const parsed = parseFloat(amountVal) || 0;
+    return rateVal > 0 ? (parsed / rateVal).toFixed(2) : "0.00";
   };
 
   // 🔁 Fetch latest data on screen focus (no form reset here)
@@ -244,8 +250,8 @@ export default function DeliveryScreen() {
   // Auto-prefill amount with current rate when switching to Amount tab
   React.useEffect(() => {
     if (inputType === 'amount' && rate > 0) {
-      const currentAmount = watch('amount');
-      if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
+      if (!rateValue || rateValue.trim() === "" || rateValue === "0.00") {
+        setRateValue(String(rate));
         setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
         setHasEditedAmount(false);
       }
@@ -283,6 +289,10 @@ export default function DeliveryScreen() {
         amount: "",              // clear
         intakeTime: new Date(),  // reset to now
       });
+
+      // Reset separate state values
+      setLitresValue("");
+      setRateValue("");
 
       // Owner: re-sync worker name from selected van after reset
       if (!isWorker) {
@@ -405,10 +415,6 @@ export default function DeliveryScreen() {
                 style={[styles.toggleButton, inputType === 'litres' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('litres');
-                  if (hasEditedAmount) {
-                    const amtNow = watch('amount') || '0';
-                    setVal('litres', calculateFromAmount(amtNow));
-                  }
                 }}
               >
                 <ThemedText style={[styles.toggleText, { color: inputType === 'litres' ? '#fff' : colors.text }]}>Enter Litres</ThemedText>
@@ -417,19 +423,15 @@ export default function DeliveryScreen() {
                 style={[styles.toggleButton, inputType === 'amount' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('amount');
-                  if (hasEditedLitres) {
-                    const litNow = watch('litres') || '0';
-                    setVal('amount', calculateFromLitres(litNow));
-                  } else if (rate > 0) {
-                    const currentAmount = watch('amount');
-                    if (!currentAmount || `${currentAmount}`.trim() === "" || currentAmount === "0.00") {
-                      setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
-                      setHasEditedAmount(false);
-                    }
+                  // When switching to amount, show default rate if rate is empty
+                  if (!rateValue || rateValue.trim() === "" || rateValue === "0.00") {
+                    setRateValue(String(rate));
+                    setValue('amount', String(rate), { shouldDirty: false, shouldTouch: false });
+                    setHasEditedAmount(false);
                   }
                 }}
               >
-                <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Amount (₹)</ThemedText>
+                <ThemedText style={[styles.toggleText, { color: inputType === 'amount' ? '#fff' : colors.text }]}>Enter Rate (₹/L)</ThemedText>
               </TouchableOpacity>
             </View>
 
@@ -441,16 +443,14 @@ export default function DeliveryScreen() {
                 render={({ field: { value } }) => (
                   <CustomTextInput
                     label="Litres Delivered *"
-                    value={value}
+                    value={litresValue}
                     placeholder="Enter litres delivered"
                     onFocus={() => setEditing('litres')}
                     onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
                       setHasEditedLitres(true);
+                      setLitresValue(text);
                       setVal('litres', text);
-                      if (editing !== 'amount') {
-                        setVal('amount', calculateFromLitres(text));
-                      }
                     }}
                     keyboardType="decimal-pad"
                     bordered
@@ -461,20 +461,18 @@ export default function DeliveryScreen() {
               <Controller
                 control={control}
                 name="amount"
-                rules={{ required: "Amount is required" }}
+                rules={{ required: "Rate is required" }}
                 render={({ field: { value } }) => (
                   <CustomTextInput
-                    label="Amount (₹)"
-                    value={value}
-                    placeholder={`Enter amount in ₹ (Rate: ₹${rate})`}
+                    label="Rate per Liter (₹/L)"
+                    value={rateValue}
+                    placeholder={`Enter rate per liter (Default: ₹${rate})`}
                     onFocus={() => setEditing('amount')}
                     onBlur={() => setEditing(null)}
                     onChangeText={(text) => {
                       setHasEditedAmount(true);
+                      setRateValue(text);
                       setVal('amount', text);
-                      if (editing !== 'litres') {
-                        setVal('litres', calculateFromAmount(text));
-                      }
                     }}
                     keyboardType="decimal-pad"
                     bordered
@@ -498,21 +496,21 @@ export default function DeliveryScreen() {
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Litres</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  {litres}L
-                </ThemedText>
-              </ThemedView>
-
-              <ThemedView style={{ alignItems: 'center' }}>
-                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Amount</ThemedText>
-                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{amount}
+                  {litresValue || "0.00"}L
                 </ThemedText>
               </ThemedView>
 
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Rate</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{rate}/L
+                  ₹{rateValue || rate}/L
+                </ThemedText>
+              </ThemedView>
+
+              <ThemedView style={{ alignItems: 'center' }}>
+                <ThemedText style={{ color: colors.text, fontSize: 12 }}>Total Amount</ThemedText>
+                <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
+                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || rate)}
                 </ThemedText>
               </ThemedView>
             </ThemedView>
@@ -548,6 +546,9 @@ export default function DeliveryScreen() {
                   amount: "",
                   intakeTime: new Date(),
                 });
+                // Reset separate state values
+                setLitresValue("");
+                setRateValue("");
                 // Owner: re-sync worker name from current van after cancel
                 if (!isWorker) {
                   const vNow = getValues("vanName");
