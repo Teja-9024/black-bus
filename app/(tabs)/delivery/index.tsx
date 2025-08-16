@@ -132,13 +132,15 @@ export default function DeliveryScreen() {
   // Calculate total amount based on litres × rate
   const calculateTotalAmount = (litresVal: string, rateVal: number) => {
     const parsed = parseFloat(litresVal) || 0;
-    return rateVal > 0 ? (parsed * rateVal).toFixed(2) : "0.00";
+    const effectiveRate = rateVal > 0 ? rateVal : rate; // Use default rate if no custom rate
+    return effectiveRate > 0 ? (parsed * effectiveRate).toFixed(2) : "0.00";
   };
 
   // Calculate litres based on total amount ÷ rate
   const calculateLitresFromAmount = (amountVal: string, rateVal: number) => {
     const parsed = parseFloat(amountVal) || 0;
-    return rateVal > 0 ? (parsed / rateVal).toFixed(2) : "0.00";
+    const effectiveRate = rateVal > 0 ? rateVal : rate; // Use default rate if no custom rate
+    return effectiveRate > 0 ? (parsed / effectiveRate).toFixed(2) : "0.00";
   };
 
   // 🔁 Fetch latest data on screen focus (no form reset here)
@@ -274,12 +276,16 @@ export default function DeliveryScreen() {
 
     showBlocking();
     try {
+      // Use effective rate (custom rate or default rate)
+      const effectiveRate = parseFloat(rateValue) || rate;
+      const calculatedAmount = parseFloat(litresValue) * effectiveRate;
+
       const payload = {
         vanNo: values.vanName,            // valueField is vanid
         supplier: values.supplierName,
         customer: values.customerName,
         litres: parseFloat(values.litres || "0"),
-        amount: parseFloat(values.amount || "0"),
+        amount: calculatedAmount, // Use calculated amount instead of form amount
         dateTime: (values.intakeTime || new Date()).toISOString(),
       };
       
@@ -354,7 +360,7 @@ export default function DeliveryScreen() {
       inFlight.current.save = false;
       hideBlocking();
     }
-  }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById]);
+  }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById, litresValue, rateValue, rate]);
 
   const handleCloseApiPopup = () => {
     setShowApiPopup(false);
@@ -556,7 +562,7 @@ export default function DeliveryScreen() {
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Total Amount</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || rate)}
+                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || 0)}
                 </ThemedText>
               </ThemedView>
             </ThemedView>

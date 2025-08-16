@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View
+    StyleSheet,
+    TouchableOpacity,
+    View
 } from "react-native";
 
 import ApiResponsePopup from "@/components/ApiResponsePopup";
@@ -130,13 +130,15 @@ export default function IntakeScreen() {
   // Calculate total amount based on litres × rate
   const calculateTotalAmount = (litresVal: string, rateVal: number) => {
     const parsed = parseFloat(litresVal) || 0;
-    return rateVal > 0 ? (parsed * rateVal).toFixed(2) : "0.00";
+    const effectiveRate = rateVal > 0 ? rateVal : rate; // Use default rate if no custom rate
+    return effectiveRate > 0 ? (parsed * effectiveRate).toFixed(2) : "0.00";
   };
 
   // Calculate litres based on total amount ÷ rate
   const calculateLitresFromAmount = (amountVal: string, rateVal: number) => {
     const parsed = parseFloat(amountVal) || 0;
-    return rateVal > 0 ? (parsed / rateVal).toFixed(2) : "0.00";
+    const effectiveRate = rateVal > 0 ? rateVal : rate; // Use default rate if no custom rate
+    return effectiveRate > 0 ? (parsed / effectiveRate).toFixed(2) : "0.00";
   };
 
   // 🔁 Fetch latest data on screen focus; do NOT reset the form here.
@@ -275,16 +277,23 @@ export default function IntakeScreen() {
 
     showBlocking();
     try {
+      // Use effective rate (custom rate or default rate)
+      const effectiveRate = parseFloat(rateValue) || rate;
+      const calculatedAmount = parseFloat(litresValue) * effectiveRate;
+
       const payload = {
         vanNo: values.vanName,
         pumpName: values.pumpName || "Sonu Petroleum Service",
         sourceType: values.sourceType,
         sourceName: values.sourceName,
         litres: parseFloat(values.litres || "0"),
-        amount: parseFloat(values.amount || "0"),
+        amount: calculatedAmount, // Use calculated amount instead of form amount
         dateTime: (values.intakeTime || new Date()).toISOString(),
       };
-    
+      console.log("call")
+      console.log("acessToken",accessToken)
+      console.log("payload",payload)
+     
       const response = await IntakeService.addIntake(accessToken, payload);
       console.log("intakeresponse",response)
       // Handle API response
@@ -357,7 +366,7 @@ export default function IntakeScreen() {
       inFlight.current.save = false;
       hideBlocking();                 // ✅ paired with showBlocking
     }
-  }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById]);
+  }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById, litresValue, rateValue, rate]);
 
   const handleCloseApiPopup = () => {
     setShowApiPopup(false);
@@ -572,7 +581,7 @@ export default function IntakeScreen() {
               <ThemedView style={{ alignItems: 'center' }}>
                 <ThemedText style={{ color: colors.text, fontSize: 12 }}>Total Amount</ThemedText>
                 <ThemedText style={{ color: colors.primary, fontWeight: 'bold', fontSize: 16 }}>
-                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || rate)}
+                  ₹{calculateTotalAmount(litresValue, parseFloat(rateValue) || 0)}
                 </ThemedText>
               </ThemedView>
             </ThemedView>
