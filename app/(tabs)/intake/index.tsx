@@ -284,9 +284,6 @@ export default function IntakeScreen() {
         amount: parseFloat(values.amount || "0"),
         dateTime: (values.intakeTime || new Date()).toISOString(),
       };
-      console.log("call")
-      console.log("acessToken",accessToken)
-      console.log("payload",payload)
     
       const response = await IntakeService.addIntake(accessToken, payload);
       console.log("intakeresponse",response)
