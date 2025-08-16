@@ -4,12 +4,12 @@ import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import Button from "@/components/Button";
@@ -88,6 +88,7 @@ export default function IntakeScreen() {
   const [workerName, setWorkerName] = useState<string>("");
   const [isWorker, setIsWorker] = useState<boolean>(false);
   const [workerId, setWorkerId] = useState<string>("");
+  const [vanMetaById, setVanMetaById] = useState<Record<string, { workerName?: string }>>({});
 
   // guards to avoid ping-pong + unwanted conversions
   const [editing, setEditing] = useState<'litres' | 'amount' | null>(null);
@@ -127,7 +128,6 @@ export default function IntakeScreen() {
   // Uses blocking dialog with semaphore + in-flight guard to avoid stuck loader.
   const fetchLatest = useCallback(async () => {
     if (!accessToken) return;             // ✅ never show dialog if no token
-
     if (inFlight.current.fetch) return;   // prevent duplicate focus calls
     inFlight.current.fetch = true;
 
@@ -146,8 +146,14 @@ export default function IntakeScreen() {
       }
 
       setIsWorker(role === "worker");
-      setWorkerName(name || "");
       setWorkerId(uid || "");
+
+      // worker: keep own name; owner: start blank (will sync from selected van)
+      if (role === "worker") {
+        setWorkerName(name || "");
+      } else {
+        setWorkerName("");
+      }
 
       const [r, vans] = await Promise.all([
         FuelRateService.getDieselRate(accessToken),
@@ -157,33 +163,59 @@ export default function IntakeScreen() {
 
       let availableVans: Van[] = vans || [];
       if (role === "worker" && uid) {
-        availableVans = availableVans.filter((v) => (v.assignedWorker || "") === uid);
+        availableVans = availableVans.filter((v: any) => (v.assignedWorker || "") === uid);
         // Fallback if API doesn't include assignedWorker
         if (availableVans.length === 0 && stored) {
           try {
             const parsed = JSON.parse(stored);
             const vanId = parsed?.vanId as string | undefined;
-            if (vanId) availableVans = (vans || []).filter((v) => v._id === vanId);
+            if (vanId) availableVans = (vans || []).filter((v: any) => v._id === vanId);
           } catch {}
         }
       }
 
-      const opts: VanOption[] = (availableVans || []).map((v: Van) => ({
+      const opts: VanOption[] = (availableVans || []).map((v: any) => ({
         vanName: `${v.vanNo} - ${v.name}`,
         vanid: v.vanNo,
       }));
       setVanOptions(opts);
 
-      // Preserve user selection; if none, preselect first available only once
+      // ✅ Build vanNo -> workerName map for Owner auto-fill
+      const meta: Record<string, { workerName?: string }> = {};
+      (availableVans || []).forEach((v: any) => {
+        const workerNameFromApi =
+          v.assignedWorkerName ||
+          v.workerName ||
+          v.assignedWorker?.name ||
+          "";
+        meta[v.vanNo] = { workerName: workerNameFromApi };
+      });
+      setVanMetaById(meta);
+
+      // Preserve user selection:
       const currentVan = getValues("vanName");
-      if ((!currentVan || currentVan.trim() === "") && opts.length > 0) {
-        setValue("vanName", opts[0].vanid as any, { shouldDirty: false, shouldTouch: false });
+      if (
+        role === "worker" &&
+        (!currentVan || currentVan.trim() === "") &&
+        opts.length > 0
+      ) {
+        // worker: auto-select first available
+        setValue("vanName", opts[0].vanid as any, {
+          shouldDirty: false,
+          shouldTouch: false,
+        });
+      } else if (role !== "worker") {
+        // owner: ensure empty (no auto-selection)
+        setValue("vanName", "", { shouldDirty: false, shouldTouch: false });
       }
 
-      // Prefill workerName if empty
+      // Prefill workerName only for worker role
       const currentWorker = getValues("workerName");
-      if (!currentWorker) {
+      if (role === "worker" && !currentWorker) {
         setValue("workerName", name || "", { shouldDirty: false, shouldTouch: false });
+      }
+      if (role !== "worker") {
+        setValue("workerName", "", { shouldDirty: false, shouldTouch: false });
       }
     } catch (e) {
       HandleApiError(e);
@@ -199,9 +231,18 @@ export default function IntakeScreen() {
     }, [fetchLatest])
   );
 
+  // ---- Owner: sync worker name when van changes ----
+  const vanNameSelected = watch("vanName");
+  useEffect(() => {
+    if (!isWorker) {
+      const nameFromVan = (vanMetaById[vanNameSelected]?.workerName) || "";
+      setWorkerName(nameFromVan);
+      setValue("workerName", nameFromVan, { shouldDirty: false, shouldTouch: false });
+    }
+  }, [vanNameSelected, isWorker, vanMetaById, setValue]);
+
   const onSubmit = useCallback(async (values: TFormData) => {
     if (!accessToken) return;
-
     if (inFlight.current.save) return;   // avoid double-tap submits
     inFlight.current.save = true;
 
@@ -223,7 +264,7 @@ export default function IntakeScreen() {
       const { vanName, workerName, pumpName } = getValues();
       reset({
         vanName,                     // keep
-        workerName,                  // keep
+        workerName,                  // keep (will re-sync for owner below)
         pumpName: pumpName || "Sonu Petroleum Service",
         sourceType: "",              // clear
         sourceName: "",              // clear
@@ -231,6 +272,14 @@ export default function IntakeScreen() {
         amount: "",                  // clear
         intakeTime: new Date(),      // reset to now
       });
+
+      // Owner: re-sync worker name from currently selected van
+      if (!isWorker) {
+        const vNow = getValues("vanName");
+        const nameFromVan = (vanMetaById[vNow]?.workerName) || "";
+        setWorkerName(nameFromVan);
+        setValue("workerName", nameFromVan, { shouldDirty: false, shouldTouch: false });
+      }
 
       // reset guards and toggle
       setEditing(null);
@@ -243,7 +292,7 @@ export default function IntakeScreen() {
       inFlight.current.save = false;
       hideBlocking();                 // ✅ paired with showBlocking
     }
-  }, [accessToken, reset, getValues]);
+  }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById]);
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -359,7 +408,6 @@ export default function IntakeScreen() {
                 style={[styles.toggleButton, inputType === 'litres' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('litres');
-                  // Recalculate litres from amount ONLY if user actually edited amount
                   if (hasEditedAmount) {
                     const amtNow = watch('amount') || '0';
                     setVal('litres', calculateFromAmount(amtNow));
@@ -372,7 +420,6 @@ export default function IntakeScreen() {
                 style={[styles.toggleButton, inputType === 'amount' && { backgroundColor: colors.primary }]}
                 onPress={() => {
                   setInputType('amount');
-                  // Recalculate amount from litres ONLY if user actually edited litres
                   if (hasEditedLitres) {
                     const litNow = watch('litres') || '0';
                     setVal('amount', calculateFromLitres(litNow));
@@ -399,7 +446,6 @@ export default function IntakeScreen() {
                     onChangeText={(text) => {
                       setHasEditedLitres(true);
                       setVal('litres', text);
-                      // only compute amount when the user is editing litres
                       if (editing !== 'amount') {
                         setVal('amount', calculateFromLitres(text));
                       }
@@ -488,7 +534,6 @@ export default function IntakeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Button title="Cancel" onPress={() => {
-                // Optional: clear user inputs without touching selections
                 const { vanName, workerName, pumpName } = getValues();
                 reset({
                   vanName,
@@ -500,6 +545,13 @@ export default function IntakeScreen() {
                   amount: "",
                   intakeTime: new Date(),
                 });
+                // Owner: re-sync worker name from current van after cancel
+                if (!isWorker) {
+                  const vNow = getValues("vanName");
+                  const nameFromVan = (vanMetaById[vNow]?.workerName) || "";
+                  setWorkerName(nameFromVan);
+                  setValue("workerName", nameFromVan, { shouldDirty: false, shouldTouch: false });
+                }
                 setEditing(null);
                 setHasEditedLitres(false);
                 setHasEditedAmount(false);
