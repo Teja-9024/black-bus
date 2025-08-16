@@ -10,6 +10,8 @@ export interface IntakeItem {
   worker: { _id: string; email: string; name: string };
   workerName: string;
   pumpName: string;
+  sourceType?: string;
+  sourceName?: string;
   litres: number;
   amount: number;
   dateTime: string;
@@ -33,6 +35,8 @@ class IntakeService {
         worker: { _id: '', email: '', name: r.workerName || '' },
         workerName: r.workerName || '',
         pumpName: r.pumpName,
+        sourceType: r.sourceType || undefined,
+        sourceName: r.sourceName || undefined,
         litres: r.litres,
         amount: r.amount,
         dateTime: r.dateTime,
@@ -48,6 +52,8 @@ class IntakeService {
     payload: {
       vanNo: string;
       pumpName: string;
+      sourceType?: string;
+      sourceName?: string;
       litres: number;
       amount: number;
       dateTime: string;
@@ -63,6 +69,8 @@ class IntakeService {
       await IntakesRepo.insertLocalPending({
         vanNo: payload.vanNo,
         pumpName: payload.pumpName,
+        sourceType: payload.sourceType,
+        sourceName: payload.sourceName,
         litres: payload.litres,
         amount: payload.amount,
         dateTime: payload.dateTime,
@@ -79,6 +87,8 @@ class IntakeService {
           server_id: serverId,
           vanNo: payload.vanNo,
           pumpName: payload.pumpName,
+          sourceType: payload.sourceType,
+          sourceName: payload.sourceName,
           litres: payload.litres,
           amount: payload.amount,
           dateTime: payload.dateTime,

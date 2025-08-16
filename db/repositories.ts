@@ -20,6 +20,8 @@ export type IntakeRow = {
 	server_id?: string | null;
 	vanNo: string;
 	pumpName: string;
+	sourceType?: string | null;
+	sourceName?: string | null;
 	litres: number;
 	amount: number;
 	dateTime: string;
@@ -95,9 +97,9 @@ export const IntakesRepo = {
 	insertLocalPending: async (row: IntakeRow): Promise<number> => {
 		const now = new Date().toISOString();
         const res = await exec(getDb(),
-			`INSERT INTO intakes (server_id, vanNo, pumpName, litres, amount, dateTime, workerName, sync_status, createdAt, updatedAt)
-			 VALUES (NULL,?,?,?,?,?,?,?,?,?)`,
-			[row.vanNo, row.pumpName, row.litres, row.amount, row.dateTime, row.workerName ?? null, 'pending', now, now]
+			`INSERT INTO intakes (server_id, vanNo, pumpName, sourceType, sourceName, litres, amount, dateTime, workerName, sync_status, createdAt, updatedAt)
+			 VALUES (NULL,?,?,?,?,?,?,?,?,?,?,?)`,
+			[row.vanNo, row.pumpName, row.sourceType ?? null, row.sourceName ?? null, row.litres, row.amount, row.dateTime, row.workerName ?? null, 'pending', now, now]
 		);
 		return (res.insertId || 0) as number;
 	},

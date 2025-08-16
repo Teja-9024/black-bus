@@ -56,6 +56,8 @@ export const runMigrations = async (): Promise<void> => {
 			server_id TEXT,
 			vanNo TEXT,
 			pumpName TEXT,
+			sourceType TEXT,
+			sourceName TEXT,
 			litres REAL,
 			amount REAL,
 			dateTime TEXT,
@@ -65,6 +67,9 @@ export const runMigrations = async (): Promise<void> => {
 			updatedAt TEXT
 		);
 	`);
+	// Best-effort migration for existing apps where the table already exists without the new columns
+	try { await database.execAsync('ALTER TABLE intakes ADD COLUMN sourceType TEXT'); } catch {}
+	try { await database.execAsync('ALTER TABLE intakes ADD COLUMN sourceName TEXT'); } catch {}
 	await database.execAsync(`
 		CREATE TABLE IF NOT EXISTS outbox (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,

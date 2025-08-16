@@ -35,12 +35,23 @@ type TFormData = {
   vanName: string;
   workerName: string;
   pumpName: string;
+  sourceType: string;
+  sourceName: string;
   litres: string;
   amount: string;
   intakeTime: Date;
 };
 
 type VanOption = { vanName: string; vanid: string };
+
+const SOURCE_TYPE_OPTIONS = [
+  { label: 'Pump', value: 'pump' },
+  { label: 'Factory', value: 'factory' },
+  { label: 'Tanker', value: 'tanker' },
+  { label: 'Vendor', value: 'vendor' },
+  { label: 'Individual', value: 'individual' },
+  { label: 'Other', value: 'other' },
+];
 
 export default function IntakeScreen() {
   const { colors } = useTheme();
@@ -63,6 +74,8 @@ export default function IntakeScreen() {
       vanName: "",
       workerName: "",
       pumpName: "Sonu Petroleum Service",
+      sourceType: "",
+      sourceName: "",
       litres: "",
       amount: "",
       intakeTime: new Date(),
@@ -197,6 +210,8 @@ export default function IntakeScreen() {
       const payload = {
         vanNo: values.vanName,
         pumpName: values.pumpName || "Sonu Petroleum Service",
+        sourceType: values.sourceType,
+        sourceName: values.sourceName,
         litres: parseFloat(values.litres || "0"),
         amount: parseFloat(values.amount || "0"),
         dateTime: (values.intakeTime || new Date()).toISOString(),
@@ -210,6 +225,8 @@ export default function IntakeScreen() {
         vanName,                     // keep
         workerName,                  // keep
         pumpName: pumpName || "Sonu Petroleum Service",
+        sourceType: "",              // clear
+        sourceName: "",              // clear
         litres: "",                  // clear
         amount: "",                  // clear
         intakeTime: new Date(),      // reset to now
@@ -297,6 +314,40 @@ export default function IntakeScreen() {
                   label="Pump Name"
                   value={value}
                   editable={false}
+                  bordered
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="sourceType"
+              rules={{ required: "Source type is required" }}
+              render={({ field: { onChange, value } }) => (
+                <CustomDropdown
+                  label="Source Type *"
+                  data={SOURCE_TYPE_OPTIONS}
+                  value={value}
+                  onChange={onChange}
+                  errorMsg={errors.sourceType?.message}
+                  placeholder={"Select source type..."}
+                  labelField={"label"}
+                  valueField={"value"}
+                />
+              )}
+            />
+
+            <Controller
+              control={control}
+              name="sourceName"
+              rules={{ required: "Source name is required" }}
+              render={({ field: { onChange, value } }) => (
+                <CustomTextInput
+                  label="Source Name *"
+                  value={value}
+                  placeholder="Enter source name"
+                  onChangeText={onChange}
+                  errorMsg={errors.sourceName?.message}
                   bordered
                 />
               )}
@@ -443,6 +494,8 @@ export default function IntakeScreen() {
                   vanName,
                   workerName,
                   pumpName: pumpName || "Sonu Petroleum Service",
+                  sourceType: "",
+                  sourceName: "",
                   litres: "",
                   amount: "",
                   intakeTime: new Date(),

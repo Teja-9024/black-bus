@@ -53,6 +53,8 @@ type ReportTransaction = {
   van: string;
   worker: string;
   company: string;
+  sourceType?: string | null;
+  sourceName?: string | null;
   date: Date;
   litres: number;
   amount: number;
@@ -74,6 +76,11 @@ const formatTime = (date: Date) => {
     minute: "2-digit",
     hour12: false,
   });
+};
+
+const formatSourceType = (t?: string | null) => {
+  if (!t) return "-";
+  return t.charAt(0).toUpperCase() + t.slice(1);
 };
 
 const SummaryCard = ({ summary }: { summary: ReportSummary }) => (
@@ -124,6 +131,11 @@ const TransactionCard = ({ tx }: { tx: ReportTransaction }) => (
       {tx.van} • {tx.worker}
     </ThemedText>
     <ThemedText style={styles.cardSub}>{tx.company}</ThemedText>
+    {tx.type === 'intake' ? (
+      <ThemedText style={styles.cardSub}>
+        Source: {formatSourceType(tx.sourceType)} • {tx.sourceName || '-'}
+      </ThemedText>
+    ) : null}
     <ThemedView style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
       <ThemedText style={styles.cardDate}>
         {formatDate(tx.date)} • {formatTime(tx.date)}
@@ -224,6 +236,8 @@ export default function ReportsScreen() {
         van: i.vanNo,
         worker: i.worker?.name || i.workerName || '-',
         company: i.pumpName,
+        sourceType: i.sourceType ?? null,
+        sourceName: i.sourceName ?? null,
         date: new Date(i.dateTime),
         litres: i.litres || 0,
         amount: i.amount || 0,
@@ -261,12 +275,14 @@ export default function ReportsScreen() {
         Toast.show({ type: 'info', text1: 'No data to export. Please apply filters first.' });
         return;
       }
-      const headers = ['Type', 'Van', 'Worker', 'Company', 'Date', 'Time', 'Litres', 'Amount'];
+      const headers = ['Type', 'Van', 'Worker', 'Company', 'Source Type', 'Source Name', 'Date', 'Time', 'Litres', 'Amount'];
       const rows = filteredTransactions.map((tx) => [
         tx.type,
         tx.van,
         tx.worker,
         tx.company,
+        formatSourceType(tx.sourceType || ''),
+        tx.sourceName || '',
         formatDate(tx.date),
         formatTime(tx.date),
         String(tx.litres),
