@@ -11,6 +11,7 @@ import {
     View
 } from "react-native";
 
+import ApiResponsePopup from "@/components/ApiResponsePopup";
 import Button from "@/components/Button";
 import CustomTextInput from "@/components/CustomTextInput";
 import { ThemedText } from "@/components/ThemedText";
@@ -18,7 +19,6 @@ import { ThemedView } from "@/components/ThemedView";
 import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
-import { useSuccessDialog } from "@/context/SuccessContext";
 import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
 import Ionicons from "@expo/vector-icons/Ionicons";
@@ -27,7 +27,6 @@ import { useFocusEffect } from "@react-navigation/native"; // 👈 added
 import { LinearGradient } from "expo-linear-gradient";
 import { Controller, useForm } from "react-hook-form";
 import { Text } from "react-native-paper";
-import Toast from "react-native-toast-message";
 
 export default function SettingsScreen() {
   const { colors } = useTheme();
@@ -40,7 +39,15 @@ export default function SettingsScreen() {
   const [workerId, setWorkerId] = useState<string>("");
   const { unread } = useNotificationsCtx();
   const { show, hide } = useLoadingDialog();
-  const successDialog = useSuccessDialog();
+
+  // API Response popup state
+  const [apiResponse, setApiResponse] = useState<{
+    success: boolean;
+    message?: string;
+    data?: any;
+    status?: number;
+  } | null>(null);
+  const [showApiPopup, setShowApiPopup] = useState(false);
 
   const [vans, setVans] = useState<Van[]>([]);
   const [vansLoading, setVansLoading] = useState<boolean>(false);
@@ -64,7 +71,12 @@ export default function SettingsScreen() {
     if (!newRate || !accessToken) return;
     const parsed = parseFloat(newRate);
     if (Number.isNaN(parsed)) {
-      Toast.show({ type: 'error', text1: 'Please enter a valid rate' });
+      setApiResponse({
+        success: false,
+        message: 'Please enter a valid rate',
+        status: 400
+      });
+      setShowApiPopup(true);
       return;
     }
     try {
@@ -72,12 +84,32 @@ export default function SettingsScreen() {
       const saved = await FuelRateService.setDieselRate(accessToken, parsed);
       setRate(String(saved));
       setNewRate('');
-      successDialog.flash();
-    } catch (e:any) {
-      Toast.show({ type: 'error', text1: 'Failed to update rate' });
+      
+      // Success response
+      setApiResponse({
+        success: true,
+        message: `Diesel rate updated successfully to ₹${saved}/L`,
+        data: { rate: saved },
+        status: 200
+      });
+      setShowApiPopup(true);
+    } catch (e: any) {
+      // Error response
+      const errorMessage = e?.response?.data?.message || e?.message || "Failed to update diesel rate. Please try again.";
+      setApiResponse({
+        success: false,
+        message: errorMessage,
+        status: e?.response?.status || 500
+      });
+      setShowApiPopup(true);
     } finally {
       hide();
     }
+  };
+
+  const handleCloseApiPopup = () => {
+    setShowApiPopup(false);
+    setApiResponse(null);
   };
 
   // Load role/worker id once (from AsyncStorage, fallback to useAuth)
@@ -275,6 +307,12 @@ export default function SettingsScreen() {
 
         </ScrollView>
 
+        {/* API Response Popup */}
+        <ApiResponsePopup
+          visible={showApiPopup}
+          onClose={handleCloseApiPopup}
+          response={apiResponse}
+        />
       </ThemedSafeArea>
     </LinearGradient>
   );

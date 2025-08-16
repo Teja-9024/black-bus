@@ -80,6 +80,7 @@ class IntakeService {
     }
 
     const res = await offlinePost<any>("intakes/add-intake", payload, headers);
+    console.log("res", res)
     try {
       if (res && (res._id || res.data?._id)) {
         const serverId = res._id || res.data._id;
@@ -95,7 +96,9 @@ class IntakeService {
           sync_status: 'synced',
         } as any);
       }
-    } catch {}
+    } catch {
+      console.log("error")
+    }
     return res;
   }
 }

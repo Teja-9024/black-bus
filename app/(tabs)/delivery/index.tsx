@@ -12,6 +12,7 @@ import {
     View
 } from "react-native";
 
+import ApiResponsePopup from "@/components/ApiResponsePopup";
 import Button from "@/components/Button";
 import CustomTextInput from "@/components/CustomTextInput";
 import DateTimePickerComponent from "@/components/DateTimePickerComponent";
@@ -22,7 +23,6 @@ import { HandleApiError } from "@/constants/Functions";
 import { useAuth } from "@/context/AuthContext";
 import { useLoadingDialog } from "@/context/LoadingContext";
 import { useNotificationsCtx } from "@/context/NotificationContext";
-import { useSuccessDialog } from "@/context/SuccessContext";
 import DeliveryService from "@/services/DeliveryService";
 import FuelRateService from "@/services/FuelRateService";
 import VanService, { Van } from "@/services/VanService";
@@ -60,7 +60,15 @@ export default function DeliveryScreen() {
   const { accessToken, user } = useAuth();
   const { unread } = useNotificationsCtx();
   const loadingDialog = useLoadingDialog();
-  const successDialog = useSuccessDialog();
+
+  // API Response popup state
+  const [apiResponse, setApiResponse] = useState<{
+    success: boolean;
+    message?: string;
+    data?: any;
+    status?: number;
+  } | null>(null);
+  const [showApiPopup, setShowApiPopup] = useState(false);
 
   const {
     control,
@@ -274,9 +282,35 @@ export default function DeliveryScreen() {
         amount: parseFloat(values.amount || "0"),
         dateTime: (values.intakeTime || new Date()).toISOString(),
       };
-      const res = await DeliveryService.createDelivery(accessToken, payload);
-      console.log("createDelivery", res);
-      successDialog.flash();
+      
+      const response = await DeliveryService.createDelivery(accessToken, payload);
+      
+      // Handle API response
+      if (response && response.offline) {
+        // Offline mode
+        setApiResponse({
+          success: true,
+          message: "Delivery saved offline. Will sync when connection is restored.",
+          status: 200
+        });
+      } else if (response && (response._id || response.data?._id)) {
+        // Success response
+        setApiResponse({
+          success: true,
+          message: "Delivery entry added successfully!",
+          data: response,
+          status: 200
+        });
+      } else {
+        // Generic success
+        setApiResponse({
+          success: true,
+          message: "Delivery entry added successfully!",
+          status: 200
+        });
+      }
+      
+      setShowApiPopup(true);
 
       // ✅ Reset only user-input fields after save; keep selections (van, worker, supplier)
       const { vanName, workerName, supplierName } = getValues();
@@ -307,13 +341,25 @@ export default function DeliveryScreen() {
       setHasEditedLitres(false);
       setHasEditedAmount(false);
       setInputType('litres');
-    } catch (e) {
-      HandleApiError(e);
+    } catch (e: any) {
+      // Handle error response
+      const errorMessage = e?.response?.data?.message || e?.message || "Failed to add delivery entry. Please try again.";
+      setApiResponse({
+        success: false,
+        message: errorMessage,
+        status: e?.response?.status || 500
+      });
+      setShowApiPopup(true);
     } finally {
       inFlight.current.save = false;
       hideBlocking();
     }
   }, [accessToken, reset, getValues, isWorker, setValue, vanMetaById]);
+
+  const handleCloseApiPopup = () => {
+    setShowApiPopup(false);
+    setApiResponse(null);
+  };
 
   return (
     <LinearGradient colors={colors.gradient} style={styles.gradientContainer}>
@@ -564,6 +610,13 @@ export default function DeliveryScreen() {
             </View>
           </ThemedView>
         </ScrollView>
+
+        {/* API Response Popup */}
+        <ApiResponsePopup
+          visible={showApiPopup}
+          onClose={handleCloseApiPopup}
+          response={apiResponse}
+        />
       </ThemedSafeArea>
     </LinearGradient>
   );
