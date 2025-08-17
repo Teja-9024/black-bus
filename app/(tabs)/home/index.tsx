@@ -6,7 +6,7 @@ import { useNotificationsCtx } from "@/context/NotificationContext";
 import { useTheme } from "@/context/ThemeContext";
 import { SimpleLineIcons } from "@expo/vector-icons";
 import { Redirect, useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -188,6 +188,8 @@ export default function HomeScreen() {
           deliveryTime: d.dateTime,
           litres: d.litres,
           amount: d.amount,
+          workerName: d.workerName, 
+          vanNo: d.vanNo,
         }));
       setRecentDeliveries(recentMapped);
     } catch (e) {

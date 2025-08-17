@@ -10,6 +10,8 @@ export interface RecentDelivery {
   deliveryTime: string;
   litres: number;
   amount: number;
+  workerName: string;
+  vanNo: string; 
 }
 
 interface RecentDeliveriesProps {
@@ -42,7 +44,7 @@ export default function RecentDeliveries({ deliveries }: RecentDeliveriesProps) 
           {delivery.customerName}
         </ThemedText>
         <ThemedText style={[styles.time, { color: colors.textDim }]}>
-          {formatTime(delivery.deliveryTime)}
+          {delivery.workerName } • {delivery.vanNo} • {formatTime(delivery.deliveryTime)}
         </ThemedText>
       </ThemedView>
 
