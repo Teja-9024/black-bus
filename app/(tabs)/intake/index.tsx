@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import ApiResponsePopup from "@/components/ApiResponsePopup";
@@ -511,12 +511,14 @@ export default function IntakeScreen() {
               <Controller
                 control={control}
                 name="litres"
+                rules={{ required: "Litres is required" }}
                 render={({ field: { value } }) => (
                   <CustomTextInput
                     label="Litres Received *"
                     value={litresValue}
                     placeholder="Enter litres received"
                     keyboardType="decimal-pad"
+                    errorMsg={errors.litres?.message}
                     bordered
                     onFocus={() => setEditing('litres')}
                     onBlur={() => setEditing(null)}

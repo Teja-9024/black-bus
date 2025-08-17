@@ -7,9 +7,9 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-    StyleSheet,
-    TouchableOpacity,
-    View
+  StyleSheet,
+  TouchableOpacity,
+  View
 } from "react-native";
 
 import ApiResponsePopup from "@/components/ApiResponsePopup";
@@ -454,6 +454,7 @@ export default function DeliveryScreen() {
                 <CustomTextInput
                   label="Customer Name *"
                   value={value}
+                  errorMsg={errors.customerName?.message}
                   placeholder="Enter customer name"
                   onChangeText={(text) => onChange(text)}
                   bordered
@@ -504,6 +505,7 @@ export default function DeliveryScreen() {
                       setLitresValue(text);
                       setVal('litres', text);
                     }}
+                    errorMsg={errors.litres?.message}
                     keyboardType="decimal-pad"
                     bordered
                   />

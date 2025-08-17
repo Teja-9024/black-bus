@@ -1,6 +1,5 @@
 import { useTheme } from "@/context/ThemeContext";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import React from "react";
 import { StyleSheet } from "react-native";
 import { ThemedText } from "./ThemedText";
 import { ThemedView } from "./ThemedView";
@@ -20,6 +19,7 @@ interface RecentDeliveriesProps {
 export default function RecentDeliveries({ deliveries }: RecentDeliveriesProps) {
   const { colors } = useTheme();
 
+  console.log("deliveries",deliveries)
   const formatTime = (timeString: string) => {
     const date = new Date(timeString);
     return date.toLocaleTimeString("en-US", {

@@ -1,5 +1,5 @@
 import { useTheme } from '@/context/ThemeContext';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet } from 'react-native';
 import { Dropdown } from 'react-native-element-dropdown';
 import { DropdownProps } from 'react-native-element-dropdown/lib/typescript/components/Dropdown/model';
@@ -160,6 +160,8 @@ const styles = StyleSheet.create({
   },
   errorText: {
     paddingLeft: 12,
+    color: 'red',
+    fontSize:12
   },
   disabled: {
     opacity: 0.6,

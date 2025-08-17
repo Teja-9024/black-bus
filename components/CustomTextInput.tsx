@@ -1,5 +1,5 @@
 import { useTheme } from '@/context/ThemeContext';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Keyboard, StyleSheet } from 'react-native';
 import { TextInput, TextInputProps } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/Feather';
@@ -155,6 +155,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     paddingLeft: 8,
+    color: 'red',
   },
   disabled: {
     opacity: 0.5,
