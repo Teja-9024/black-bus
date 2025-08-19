@@ -1,7 +1,7 @@
 // Teja
-export const API_BASE_URL = 'http://192.168.219.5:3000/api';
+// export const API_BASE_URL = 'http://192.168.219.5:3000/api';
 // Jiofiber
-// export const API_BASE_URL = 'http://192.168.0.192:3000/api';
+export const API_BASE_URL = 'http://192.168.0.192:3000/api';
 // export const API_BASE_URL = 'https://0575-49-43-178-192.ngrok-free.app/api';
 
 export const MIN_USER_AGE = 18;

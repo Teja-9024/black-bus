@@ -36,7 +36,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
       ]}
     >
       <Image
-        source={require('@/assets/images/pimage.png')}
+        source={require('../assets/images/logo2.png')}
         style={[{ width: size, height: size }, style]}
         resizeMode={resizeMode}
       />
