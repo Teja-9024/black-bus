@@ -6,7 +6,7 @@ import { ThemeType } from "@/store/themeStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect, useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { StyleSheet } from "react-native";
 import { ThemedText } from "../components/ThemedText";
 import { ThemedView } from "../components/ThemedView";
@@ -71,6 +71,7 @@ export default function IndexScreen({ theme }: IndexScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingHorizontal:15
   },
   safeArea: {
     flex: 1,

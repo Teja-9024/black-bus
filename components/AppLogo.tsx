@@ -16,7 +16,7 @@ interface AppLogoProps {
 }
 
 const AppLogo: React.FC<AppLogoProps> = ({
-  size = 80,
+  size = 180,
   showText = false,
   text = '',
   inline = false,
@@ -36,7 +36,7 @@ const AppLogo: React.FC<AppLogoProps> = ({
       ]}
     >
       <Image
-        source={require('../assets/images/logo2.png')}
+        source={require('../assets/images/textlogo.png')}
         style={[{ width: size, height: size }, style]}
         resizeMode={resizeMode}
       />

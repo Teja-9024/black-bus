@@ -11,7 +11,6 @@ import AuthServices from "@/services/AuthService";
 import NotificationService from "@/services/NotificationService";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from "expo-router";
-import React from "react";
 import { Controller, useForm } from "react-hook-form";
 import { StyleSheet, TextInput, TouchableOpacity } from "react-native";
 
@@ -127,7 +126,7 @@ export default function LoginScreen({
         isModal && styles.modalContainer,
       ]}
     >
-      <AppLogo showText text="Welcome Back" textStyle={styles.logoText} />
+      <AppLogo showText text="" textStyle={styles.logoText} />
 
       <ThemedView style={styles.formContainer}>
         <Controller
@@ -232,6 +231,7 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     marginTop: 8,
+    backgroundColor:'#FFC107'
   },
   linkText: {
     marginTop: 20,
