@@ -26,13 +26,16 @@ import IntakeService, { IntakeItem } from "@/services/IntakeService";
 import VanService, { Van } from "@/services/VanService";
 import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
-import { BlurView } from "expo-blur"; // 👈 added
+import { BlurView } from "expo-blur";
 import * as FileSystem from "expo-file-system";
 import { LinearGradient } from "expo-linear-gradient";
-import * as MediaLibrary from "expo-media-library";
 import { Controller, useForm } from "react-hook-form";
 import { Platform } from "react-native";
 import Toast from "react-native-toast-message";
+
+// ✅ NEW imports
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sharing from "expo-sharing";
 
 type TFormData = {
   vanName: string;
@@ -269,6 +272,60 @@ export default function ReportsScreen() {
     );
   }, [filteredTransactions]);
 
+  // =============================
+  // NEW HELPERS: Share & Android SAF
+  // =============================
+  async function shareFile(fileUri: string, mime: string, dialogTitle: string) {
+    try {
+      if (Platform.OS === "web") return true; // web handled separately
+      const canShare = await Sharing.isAvailableAsync();
+      if (canShare) {
+        await Sharing.shareAsync(fileUri, { UTI: mime, mimeType: mime, dialogTitle });
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  const SAF_DIR_KEY = "saf_dir_uri_downloads";
+
+  async function getOrAskDownloadsDirUri(): Promise<string | null> {
+    const cached = await AsyncStorage.getItem(SAF_DIR_KEY);
+    if (cached) return cached;
+
+    const perm = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+    if (perm.granted) {
+      await AsyncStorage.setItem(SAF_DIR_KEY, perm.directoryUri);
+      return perm.directoryUri;
+    }
+    return null;
+  }
+
+  async function saveTextToAndroidDownloads(
+    filename: string,
+    mime: string,
+    content: string
+  ): Promise<boolean> {
+    try {
+      const dirUri = await getOrAskDownloadsDirUri();
+      if (!dirUri) return false;
+      const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+        dirUri,
+        filename,
+        mime
+      );
+      await FileSystem.writeAsStringAsync(fileUri, content, { encoding: FileSystem.EncodingType.UTF8 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // =============================
+  // UPDATED: exportCSV
+  // =============================
   const exportCSV = async () => {
     try {
       if (filteredTransactions.length === 0) {
@@ -292,57 +349,52 @@ export default function ReportsScreen() {
         .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','))
         .join('\n');
 
+      const fileName = `report_${Date.now()}.csv`;
+      const mime = "text/csv";
+
       if (Platform.OS === 'web') {
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([csv], { type: mime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `report_${Date.now()}.csv`;
+        a.download = fileName;
         a.click();
         URL.revokeObjectURL(url);
-        Toast.show({ type: 'success', text1: 'Excel (CSV) downloaded successfully' });
+        Toast.show({ type: 'success', text1: 'CSV downloaded' });
         return;
       }
 
-      try {
-        const fileName = `report_${Date.now()}.csv`;
-        let fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-        await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-
-        const perm = await MediaLibrary.requestPermissionsAsync();
-        if (perm.granted) {
-          try {
-            const asset = await MediaLibrary.createAssetAsync(fileUri);
-            await MediaLibrary.createAlbumAsync('Download', asset, false);
-            Toast.show({ type: 'success', text1: 'Excel (CSV) exported to Downloads folder' });
-            return;
-          } catch {
-            const documentsDir = FileSystem.documentDirectory!;
-            const docFileUri = `${documentsDir}${fileName}`;
-            await FileSystem.writeAsStringAsync(docFileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-            try {
-              const asset2 = await MediaLibrary.createAssetAsync(docFileUri);
-              await MediaLibrary.createAlbumAsync('Download', asset2, false);
-              Toast.show({ type: 'success', text1: 'Excel (CSV) exported to Downloads folder' });
-              return;
-            } catch {
-              Toast.show({ type: 'success', text1: 'CSV saved to Documents folder' });
-            }
-          }
-        } else {
-          const documentsDir = FileSystem.documentDirectory!;
-          const docFileUri = `${documentsDir}${fileName}`;
-          await FileSystem.writeAsStringAsync(docFileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-          Toast.show({ type: 'info', text1: 'CSV saved to Documents folder' });
-        }
-      } catch {
-        Toast.show({ type: 'error', text1: 'Failed to save file. Please check permissions.' });
+      // Option A: Share sheet (recommended)
+      const tmpUri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tmpUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      const shared = await shareFile(tmpUri, mime, "Share CSV");
+      if (shared) {
+        Toast.show({ type: 'success', text1: 'CSV shared' });
+        return;
       }
+
+      // Option B: Android Downloads via SAF
+      if (Platform.OS === "android") {
+        const saved = await saveTextToAndroidDownloads(fileName, mime, csv);
+        if (saved) {
+          Toast.show({ type: 'success', text1: 'Saved to Downloads' });
+          return;
+        }
+      }
+
+      // Fallback: app sandbox Documents
+      const documentsDir = FileSystem.documentDirectory!;
+      const docFileUri = `${documentsDir}${fileName}`;
+      await FileSystem.writeAsStringAsync(docFileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
+      Toast.show({ type: 'info', text1: 'Saved to app Documents. Use Share to export.' });
     } catch (e: any) {
       Toast.show({ type: 'error', text1: `Export failed: ${e.message || 'Unknown error'}` });
     }
   };
 
+  // =============================
+  // UPDATED: exportPDF (HTML file)
+  // =============================
   const exportPDF = async () => {
     try {
       if (filteredTransactions.length === 0) {
@@ -402,52 +454,44 @@ export default function ReportsScreen() {
           </body>
         </html>`;
 
+      const fileName = `report_${Date.now()}.html`;
+      const mime = "text/html";
+
       if (Platform.OS === 'web') {
-        const blob = new Blob([html], { type: 'text/html' });
+        const blob = new Blob([html], { type: mime });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `report_${Date.now()}.html`;
+        a.download = fileName;
         a.click();
         URL.revokeObjectURL(url);
-        Toast.show({ type: 'success', text1: 'Report downloaded. Open in browser and print to PDF.' });
+        Toast.show({ type: 'success', text1: 'Report downloaded' });
         return;
       }
 
-      try {
-        const fileName = `report_${Date.now()}.html`;
-        let fileUri = `${FileSystem.cacheDirectory}${fileName}`;
-        await FileSystem.writeAsStringAsync(fileUri, html, { encoding: FileSystem.EncodingType.UTF8 });
-
-        const perm = await MediaLibrary.requestPermissionsAsync();
-        if (perm.granted) {
-          try {
-            const asset = await MediaLibrary.createAssetAsync(fileUri);
-            await MediaLibrary.createAlbumAsync('Download', asset, false);
-            Toast.show({ type: 'success', text1: 'Report exported to Downloads. Open in browser to print to PDF.' });
-            return;
-          } catch {
-            const documentsDir = FileSystem.documentDirectory!;
-            const docFileUri = `${documentsDir}${fileName}`;
-            await FileSystem.writeAsStringAsync(docFileUri, html, { encoding: FileSystem.EncodingType.UTF8 });
-            try {
-              const asset2 = await MediaLibrary.createAssetAsync(docFileUri);
-              await MediaLibrary.createAlbumAsync('Download', asset2, false);
-              Toast.show({ type: 'success', text1: 'Report exported to Downloads. Open in browser to print to PDF.' });
-              return;
-            } catch {
-              Toast.show({ type: 'success', text1: 'Report saved to Documents folder' });
-            }
-          }
-        } else {
-          const documentsDir = FileSystem.documentDirectory!;
-          const docFileUri = `${documentsDir}${fileName}`;
-          await FileSystem.writeAsStringAsync(docFileUri, html, { encoding: FileSystem.EncodingType.UTF8 });
-          Toast.show({ type: 'info', text1: 'Report saved to Documents folder' });
-        }
-      } catch {
-        Toast.show({ type: 'error', text1: 'Failed to save file. Please check permissions.' });
+      // Option A: Share sheet
+      const tmpUri = `${FileSystem.cacheDirectory}${fileName}`;
+      await FileSystem.writeAsStringAsync(tmpUri, html, { encoding: FileSystem.EncodingType.UTF8 });
+      const shared = await shareFile(tmpUri, mime, "Share Report");
+      if (shared) {
+        Toast.show({ type: 'success', text1: 'Report shared' });
+        return;
       }
+
+      // Option B: Android Downloads via SAF
+      if (Platform.OS === "android") {
+        const saved = await saveTextToAndroidDownloads(fileName, mime, html);
+        if (saved) {
+          Toast.show({ type: 'success', text1: 'Saved to Downloads' });
+          return;
+        }
+      }
+
+      // Fallback: app sandbox Documents
+      const documentsDir = FileSystem.documentDirectory!;
+      const docFileUri = `${documentsDir}${fileName}`;
+      await FileSystem.writeAsStringAsync(docFileUri, html, { encoding: FileSystem.EncodingType.UTF8 });
+      Toast.show({ type: 'info', text1: 'Saved to app Documents. Use Share to export.' });
     } catch (e: any) {
       Toast.show({ type: 'error', text1: `Export failed: ${e.message || 'Unknown error'}` });
     }
@@ -662,10 +706,10 @@ const styles = StyleSheet.create({
   },
   whiteTint: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(102, 96, 96, 0.96)', // 50% white tint
+    backgroundColor: 'rgba(102, 96, 96, 0.96)',
   },
   modalContent: {
-    width: '90%',           // ✅ 90% width
+    width: '90%',
     maxWidth: 400,
     borderRadius: 16,
     padding: 0,

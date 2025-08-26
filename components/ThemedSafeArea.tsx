@@ -1,7 +1,6 @@
-import React from "react";
-import { SafeAreaView, SafeAreaViewProps } from "react-native-safe-area-context";
-import { StyleSheet } from "react-native";
 import { useTheme } from "@/context/ThemeContext";
+import { StyleSheet } from "react-native";
+import { SafeAreaView, SafeAreaViewProps } from "react-native-safe-area-context";
 
 type Props = SafeAreaViewProps & {
   lightColor?: string;
@@ -14,6 +13,7 @@ const ThemedSafeArea = ({ children, style, lightColor, darkColor, ...rest }: Pro
 
   return (
     <SafeAreaView
+    edges={['top', ]}
       style={[
         styles.container,
         {

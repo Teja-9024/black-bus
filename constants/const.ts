@@ -1,3 +1,6 @@
+// Live
+// export const API_BASE_URL = 'https://sonu.kavriex.com/api';
+
 // Teja
 // export const API_BASE_URL = 'http://192.168.219.5:3000/api';
 // Jiofiber
